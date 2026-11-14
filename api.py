@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np
+import requests
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,10 +12,12 @@ try:
 except ImportError:
     from PY.horizon_engine import compute_360_horizon_profile, evaluate_mission_scenario
 
-app = FastAPI(title="Lunar Landing Site Navigator API")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+BASE_DIR = Path(__file__).resolve().parent  # rutas absolutas: funciona desde cualquier carpeta
 
-SITES_PATH = Path("data/sites.json")
+app = FastAPI(title="Lunar Landing Site Navigator API")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
+SITES_PATH = BASE_DIR / "data" / "sites.json"
 
 
 def get_dem_for_coordinates(lat: float, lon: float, size: int = 600, pixel_scale_m: float = 60.0) -> np.ndarray:
@@ -39,9 +42,14 @@ def get_dem_for_coordinates(lat: float, lon: float, size: int = 600, pixel_scale
     freq1 = rng.integers(2, 5)
     freq2 = rng.integers(5, 9)
 
+    # Los términos que dependen del ángulo (sin/cos de "angle") cambian bruscamente cerca del centro:
+    # sin esta rampa, pixeles vecinos a 60 m del lander diferían ±130 m y creaban horizontes falsos de
+    # hasta 55°. La rampa los apaga suavemente en los primeros ~3 km alrededor del observador.
+    ramp = 1.0 - np.exp(-((dist_m / 3000.0) ** 2))
+
     dem = 1500.0 + slope * dist_m
-    dem += relief_amp * np.sin(angle * freq1 + phase1) * np.exp(-((dist_m - 10000) ** 2) / (2 * 6000**2))
-    dem += (relief_amp * 0.45) * np.cos(angle * freq2 + phase2) * np.exp(-((dist_m - 16000) ** 2) / (2 * 8000**2))
+    dem += ramp * relief_amp * np.sin(angle * freq1 + phase1) * np.exp(-((dist_m - 10000) ** 2) / (2 * 6000**2))
+    dem += ramp * (relief_amp * 0.45) * np.cos(angle * freq2 + phase2) * np.exp(-((dist_m - 16000) ** 2) / (2 * 8000**2))
     # Micro-relieve de cráteres secundarios
     dem += (relief_amp * 0.12) * np.sin(x * 0.08 + phase1) * np.cos(y * 0.08 + phase2)
     return dem
@@ -49,7 +57,7 @@ def get_dem_for_coordinates(lat: float, lon: float, size: int = 600, pixel_scale
 
 @app.get("/")
 def serve_frontend():
-    return FileResponse("static/index.html")
+    return FileResponse(BASE_DIR / "static" / "index.html")
 
 
 @app.get("/api/sites")
@@ -67,6 +75,7 @@ def evaluate_site(
     alt_km: float | None = Query(default=None),
     start_date: str = Query(default="2026-11-15"),
     days: int = Query(default=30, ge=1, le=60),
+    panel: str = Query(default="auto", pattern="^(auto|horizontal|vertical)$"),
 ):
     sites = json.loads(SITES_PATH.read_text(encoding="utf-8"))
     selected_site = next((s for s in sites if s["id"] == site_id), None)
@@ -74,6 +83,8 @@ def evaluate_site(
     if site_id == "custom" or selected_site is None:
         if lat is None or lon is None:
             raise HTTPException(status_code=400, detail="Coordenadas lat y lon requeridas para sitio personalizado.")
+        if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 360.0):
+            raise HTTPException(status_code=400, detail="Coordenadas fuera de rango: lat ∈ [-90, 90], lon ∈ [-180, 360].")
         selected_site = {
             "id": "custom",
             "name": f"Coordenada Personalizada ({lat:.2f}°, {lon:.2f}°)",
@@ -111,6 +122,7 @@ def evaluate_site(
             stop_utc=stop_utc,
             horizon_profile_360=horizon_360,
             step_hours=1.0,
+            panel_mode=panel,
         )
         report["terrain_mesh"] = {
             "grid_size": int(dem_3d.shape[0]),
@@ -119,8 +131,16 @@ def evaluate_site(
             "elevations": np.round(dem_3d - center_z, 2).tolist(),
         }
         return report
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Error consultando efemérides JPL Horizons: {exc}")
+    except requests.exceptions.RequestException:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Sin datos para {selected_site['name']} desde {start_date}: no hay conexión con JPL Horizons "
+                "y esta combinación sitio/fecha no está en la caché. Corre prefetch_demo.py con internet."
+            ),
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"JPL Horizons respondió con un error: {exc}")
 
 
 if __name__ == "__main__":

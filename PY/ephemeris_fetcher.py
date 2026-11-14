@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 
 HORIZONS_URL = "https://ssd.jpl.nasa.gov/api/horizons.api"
-CACHE_DIR = Path("cache")
+CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"  # <proyecto>/cache
 CACHE_DIR.mkdir(exist_ok=True)
 
 

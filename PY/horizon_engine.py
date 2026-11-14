@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import numpy as np
 from PY.ephemeris_fetcher import get_site_ephemeris
 
@@ -80,17 +81,40 @@ def generate_mock_south_pole_dem(size: int = 1000, pixel_scale_m: float = 60.0) 
     return dem
 
 
+def resolve_panel_mode(lat: float, panel_mode: str = "auto") -> str:
+    """
+    'horizontal': paneles acostados (típico en latitudes bajas/medias)  → eficiencia = sin(elevación)
+    'vertical'  : paneles de pie que giran siguiendo el acimut del Sol  → eficiencia = cos(elevación)
+                  (diseño típico en el polo, donde el Sol va rasante al horizonte)
+    'auto'      : vertical si |lat| >= 60°, horizontal en otro caso.
+    """
+    if panel_mode in ("horizontal", "vertical"):
+        return panel_mode
+    return "vertical" if abs(lat) >= 60.0 else "horizontal"
+
+
+def solar_efficiency_pct(sun_el_deg: float, visible: bool, mode: str) -> float:
+    """Fracción de la potencia máxima del panel (0-100 %) según la geometría Sol-panel."""
+    if not visible:
+        return 0.0
+    el = np.radians(sun_el_deg)
+    factor = np.cos(el) if mode == "vertical" else np.sin(el)
+    return round(max(0.0, float(factor)) * 100.0, 2)
+
+
 def evaluate_mission_scenario(
     site: dict,
     start_utc: str,
     stop_utc: str,
     horizon_profile_360: list[float],
     step_hours: float = 1.0,
+    panel_mode: str = "auto",
 ) -> dict:
     """
     Cruza las efemérides con el perfil topográfico 360° y calcula métricas de potencia,
     comunicaciones y cuentas regresivas hasta Sunset / Earthset.
     """
+    mode = resolve_panel_mode(site["lat"], panel_mode)
     ephemeris = get_site_ephemeris(
         lat=site["lat"],
         lon=site["lon"],
@@ -111,12 +135,8 @@ def evaluate_mission_scenario(
         sun_visible = entry["sun"]["el"] > horizon_at_sun
         earth_visible = entry["earth"]["el"] > horizon_at_earth
 
-        # Eficiencia solar relativa (seno del ángulo de elevación si el Sol es visible)
-        solar_efficiency_pct = (
-            round(max(0.0, np.sin(np.radians(entry["sun"]["el"]))) * 100.0, 2)
-            if sun_visible
-            else 0.0
-        )
+        # Eficiencia solar relativa según el tipo de panel (ver resolve_panel_mode)
+        efficiency = solar_efficiency_pct(entry["sun"]["el"], sun_visible, mode)
 
         timeline.append(
             {
@@ -125,7 +145,7 @@ def evaluate_mission_scenario(
                     **entry["sun"],
                     "horizon_el": round(horizon_at_sun, 3),
                     "visible": sun_visible,
-                    "solar_power_efficiency_pct": solar_efficiency_pct,
+                    "solar_power_efficiency_pct": efficiency,
                 },
                 "earth": {
                     **entry["earth"],
@@ -163,6 +183,8 @@ def evaluate_mission_scenario(
     sunlit_hours = sum(1 for t in timeline if t["sun"]["visible"]) * step_hours
     dte_hours = sum(1 for t in timeline if t["earth"]["visible"]) * step_hours
     max_sun_el = max(t["sun"]["el"] for t in timeline)
+    lit = [t["sun"]["solar_power_efficiency_pct"] for t in timeline if t["sun"]["visible"]]
+    mean_eff_lit = round(sum(lit) / len(lit), 2) if lit else 0.0
 
     return {
         "site": site,
@@ -173,6 +195,8 @@ def evaluate_mission_scenario(
             "dte_comm_hours": dte_hours,
             "dte_availability_pct": round((dte_hours / (n * step_hours)) * 100.0, 2),
             "max_solar_elevation_deg": round(max_sun_el, 3),
+            "panel_mode": mode,
+            "mean_panel_efficiency_lit_pct": mean_eff_lit,
         },
         "horizon_profile_360": [round(h, 3) for h in horizon_profile_360],
         "timeline": timeline,
@@ -180,7 +204,8 @@ def evaluate_mission_scenario(
 
 
 if __name__ == "__main__":
-    sites = json.loads(Path("data/sites.json").read_text(encoding="utf-8"))
+    root = Path(__file__).resolve().parent.parent
+    sites = json.loads((root / "data" / "sites.json").read_text(encoding="utf-8"))
     shackleton = sites[0]
 
     # Generar perfil de horizonte de prueba (reemplazar con LOLA GeoTIFF cuando esté listo)
@@ -196,7 +221,7 @@ if __name__ == "__main__":
         step_hours=1.0,
     )
 
-    Path("data/sample_scenario_shackleton.json").write_text(
+    (root / "data" / "sample_scenario_shackleton.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
     print("Resumen de viabilidad generado:", json.dumps(report["summary"], indent=2))

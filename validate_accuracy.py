@@ -1,6 +1,10 @@
 import json
+import sys
 from pathlib import Path
 import numpy as np
+
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
 try:
     from horizon_engine import (
@@ -17,7 +21,7 @@ except ImportError:
 
 
 def run_audit():
-    sites = {s["id"]: s for s in json.loads(Path("data/sites.json").read_text(encoding="utf-8"))}
+    sites = {s["id"]: s for s in json.loads((ROOT / "data" / "sites.json").read_text(encoding="utf-8"))}
     flat_horizon = [0.0] * 360
 
     print("=== AUDITORÍA DE PRECISIÓN FÍSICA — LUNAR LANDING SITE NAVIGATOR ===\n")
