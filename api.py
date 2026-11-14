@@ -6,10 +6,10 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from PY.horizon_engine import (
-    compute_360_horizon_profile,
-    evaluate_mission_scenario,
-)
+try:
+    from horizon_engine import compute_360_horizon_profile, evaluate_mission_scenario
+except ImportError:
+    from PY.horizon_engine import compute_360_horizon_profile, evaluate_mission_scenario
 
 app = FastAPI(title="Lunar Landing Site Navigator API")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -42,6 +42,8 @@ def get_dem_for_coordinates(lat: float, lon: float, size: int = 600, pixel_scale
     dem = 1500.0 + slope * dist_m
     dem += relief_amp * np.sin(angle * freq1 + phase1) * np.exp(-((dist_m - 10000) ** 2) / (2 * 6000**2))
     dem += (relief_amp * 0.45) * np.cos(angle * freq2 + phase2) * np.exp(-((dist_m - 16000) ** 2) / (2 * 8000**2))
+    # Micro-relieve de cráteres secundarios
+    dem += (relief_amp * 0.12) * np.sin(x * 0.08 + phase1) * np.cos(y * 0.08 + phase2)
     return dem
 
 
@@ -92,8 +94,15 @@ def evaluate_site(
     start_utc = dt_start.strftime("%Y-%m-%d 00:00")
     stop_utc = dt_stop.strftime("%Y-%m-%d 00:00")
 
-    dem = get_dem_for_coordinates(selected_site["lat"], selected_site["lon"])
-    horizon_360 = compute_360_horizon_profile(dem, observer_row=300, observer_col=300)
+    full_size = 600
+    pixel_scale_m = 60.0
+    dem = get_dem_for_coordinates(selected_site["lat"], selected_site["lon"], size=full_size, pixel_scale_m=pixel_scale_m)
+    horizon_360 = compute_360_horizon_profile(dem, observer_row=full_size // 2, observer_col=full_size // 2, pixel_scale_m=pixel_scale_m)
+
+    # Submuestrear DEM a 120x120 (cada 5 píxeles = 300m) para el visor 3D WebGL
+    stride = 5
+    dem_3d = dem[::stride, ::stride]
+    center_z = float(dem[full_size // 2, full_size // 2])
 
     try:
         report = evaluate_mission_scenario(
@@ -103,6 +112,17 @@ def evaluate_site(
             horizon_profile_360=horizon_360,
             step_hours=1.0,
         )
+        report["terrain_mesh"] = {
+            "grid_size": int(dem_3d.shape[0]),
+            "pixel_scale_m": pixel_scale_m * stride,
+            "center_elevation_m": round(center_z, 2),
+            "elevations": np.round(dem_3d - center_z, 2).tolist(),
+        }
         return report
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Error consultando efemérides JPL Horizons: {exc}")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)

@@ -3,9 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lunar Landing Site Navigator — MVP</title>
+  <title>Lunar Landing Site Navigator — 3D & Temporal Simulator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #090d16; color: #e2e8f0; }
     .mono { font-family: 'JetBrains Mono', monospace; }
@@ -20,11 +28,11 @@
       <div class="w-3 h-3 rounded-full bg-sky-400 animate-pulse"></div>
       <div>
         <h1 class="text-lg font-bold tracking-tight text-white">LUNAR LANDING SITE NAVIGATOR</h1>
-        <p class="text-xs text-slate-400">Evaluación Topográfica de Iluminación Solar y Enlace Directo Tierra (DTE) • Sin Atmósfera</p>
+        <p class="text-xs text-slate-400">Simulador Topográfico 3D, Sombras Polares y Enlace Directo Tierra (DTE)</p>
       </div>
     </div>
     <div id="statusBadge" class="mono text-xs px-3 py-1 rounded bg-slate-800 text-sky-300 border border-slate-700">
-      LISTO
+      INICIALIZANDO...
     </div>
   </header>
 
@@ -39,7 +47,7 @@
         </select>
       </div>
 
-      <!-- Coordenadas Personalizadas (Ocultas por defecto) -->
+      <!-- Coordenadas Personalizadas -->
       <div id="customCoordsBox" class="lg:col-span-4 hidden grid-cols-3 gap-2">
         <div>
           <label class="block text-[11px] text-slate-400 mb-1">Latitud (°)</label>
@@ -63,11 +71,11 @@
 
       <!-- Saltos por Día Lunar -->
       <div class="lg:col-span-5 flex flex-wrap gap-2">
-        <button onclick="shiftDateDays(-29.53)" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">-1 Día Lunar</button>
-        <button onclick="shiftDateDays(14.77)" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+½ Día Lunar (14.8d)</button>
-        <button onclick="shiftDateDays(29.53)" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+1 Día Lunar (29.5d)</button>
-        <button onclick="shiftDateDays(90)" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+Estación (90d)</button>
-        <button onclick="loadScenario()" class="ml-auto px-4 py-2 text-xs font-bold uppercase tracking-wider bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg transition">Evaluar</button>
+        <button id="btnPrevLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">-1 Día Lunar</button>
+        <button id="btnHalfLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+½ Día Lunar</button>
+        <button id="btnNextLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+1 Día Lunar</button>
+        <button id="btnSeason" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+90d</button>
+        <button id="btnEvaluate" class="ml-auto px-4 py-2 text-xs font-bold uppercase tracking-wider bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg transition">Evaluar</button>
       </div>
     </div>
   </section>
@@ -87,8 +95,6 @@
 
     <!-- KPIs Operativos (4 Tarjetas Críticas) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      
-      <!-- KPI 1: Sol & Potencia -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-semibold uppercase text-slate-400">Elevación Solar</span>
@@ -96,7 +102,7 @@
         </div>
         <div class="flex items-baseline gap-2">
           <span id="kpiSunEl" class="mono text-2xl font-bold text-white">--°</span>
-          <span id="kpiSunMax" class="mono text-xs text-slate-400">Máx ciclo: --°</span>
+          <span id="kpiSunMax" class="mono text-xs text-slate-400">Máx: --°</span>
         </div>
         <div class="mt-2 text-xs text-slate-400 flex justify-between">
           <span>Eficiencia Paneles:</span>
@@ -104,7 +110,6 @@
         </div>
       </div>
 
-      <!-- KPI 2: Cuenta Regresiva Sunset -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-semibold uppercase text-slate-400">Tiempo hasta Sunset</span>
@@ -112,12 +117,11 @@
         </div>
         <div id="kpiSunsetCountdown" class="mono text-2xl font-bold text-white">-- h</div>
         <div class="mt-2 text-xs text-slate-400 flex justify-between">
-          <span>Luz total en ventana (30d):</span>
+          <span>Luz en ventana (30d):</span>
           <span id="kpiSunTotalPct" class="mono font-semibold text-slate-200">--%</span>
         </div>
       </div>
 
-      <!-- KPI 3: Enlace Directo Tierra (DTE) -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-semibold uppercase text-slate-400">Enlace Tierra (DTE)</span>
@@ -128,12 +132,11 @@
           <span id="kpiEarthAz" class="mono text-xs text-slate-400">Az: --°</span>
         </div>
         <div class="mt-2 text-xs text-slate-400 flex justify-between">
-          <span>Disponibilidad DTE (30d):</span>
+          <span>Disponibilidad DTE:</span>
           <span id="kpiDteTotalPct" class="mono font-semibold text-sky-400">--%</span>
         </div>
       </div>
 
-      <!-- KPI 4: Cuenta Regresiva Earthset -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-semibold uppercase text-slate-400">Tiempo hasta Earthset</span>
@@ -141,70 +144,378 @@
         </div>
         <div id="kpiEarthsetCountdown" class="mono text-2xl font-bold text-white">-- h</div>
         <div class="mt-2 text-xs text-slate-400 flex justify-between">
-          <span>Bloqueo topográfico local:</span>
+          <span>Horizonte local (Az Tierra):</span>
           <span id="kpiHorizonAtEarth" class="mono font-semibold text-slate-200">--°</span>
         </div>
       </div>
-
     </div>
 
-    <!-- Scrubber Temporal Interactivo -->
+    <!-- Línea de Tiempo Interactiva con Control de Velocidad -->
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <div class="flex items-center gap-3">
-          <button id="playBtn" onclick="togglePlay()" class="px-3 py-1 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-xs font-bold">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="playBtn" class="px-3.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold transition">
             ▶ Simular Ciclo
           </button>
-          <span class="text-xs text-slate-400">Instante seleccionado:</span>
+          <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg p-0.5 text-xs mono">
+            <button data-speed="1" class="speed-btn px-2 py-1 rounded bg-slate-800 text-sky-300 font-bold">1x</button>
+            <button data-speed="10" class="speed-btn px-2 py-1 rounded text-slate-400 hover:text-white">10x</button>
+            <button data-speed="50" class="speed-btn px-2 py-1 rounded text-slate-400 hover:text-white">50x</button>
+            <button data-speed="200" class="speed-btn px-2 py-1 rounded text-slate-400 hover:text-white">200x</button>
+          </div>
+          <span class="text-xs text-slate-400 ml-2">UTC:</span>
           <span id="currentTimestampLabel" class="mono text-sm font-bold text-white">--</span>
         </div>
         <span id="stepCounterLabel" class="mono text-xs text-slate-400">Hora 0 / 0</span>
       </div>
-      <input id="timeSlider" type="range" min="0" max="719" value="0" class="w-full cursor-pointer" oninput="onSliderChange(this.value)" />
+      <input id="timeSlider" type="range" min="0" max="719" value="0" class="w-full cursor-pointer" />
     </div>
 
-    <!-- Visualizaciones 2D: Panorama de Horizonte 360° + Domo Celeste Polar -->
+    <!-- FASE 3: Visor 3D del Terreno Lunar y Sombras en Tiempo Real -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>Simulador Topográfico 3D y Sombras en Tiempo Real (WebGL / LOLA DEM)</span>
+            <span class="text-[10px] uppercase px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">Fase 3</span>
+          </h2>
+          <p class="text-xs text-slate-400">Arrastra para rotar • Rueda para zoom • Sombras duras sin dispersión atmosférica y vectores Sol/Tierra</p>
+        </div>
+
+        <!-- Presets de Cámara y Leyenda 3D -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-3 text-xs mr-3">
+            <span class="flex items-center gap-1 text-amber-400"><span class="w-3 h-0.5 bg-amber-400 inline-block"></span> Vector Sol</span>
+            <span class="flex items-center gap-1 text-sky-400"><span class="w-3 h-0.5 bg-sky-400 inline-block"></span> Enlace Tierra</span>
+          </div>
+          <button id="camOrbitBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Vista Orbital</button>
+          <button id="camLanderBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Superficie (Lander)</button>
+          <button id="camTopBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Cenital (N ↑)</button>
+        </div>
+      </div>
+
+      <div id="threeContainer" class="relative w-full h-[440px] bg-black rounded-lg border border-slate-800 overflow-hidden">
+        <!-- Etiquetas flotantes en el canvas 3D -->
+        <div class="absolute top-3 left-3 pointer-events-none bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-[11px] mono space-y-1">
+          <div class="text-slate-400">RADIO ESCENA: <span class="text-white">36 km × 36 km</span></div>
+          <div class="text-slate-400">ESTADO SOMBRA LANDER: <span id="hudShadowState" class="font-bold text-amber-300">--</span></div>
+          <div class="text-slate-400">LÍNEA DE VISTA DTE: <span id="hudDteState" class="font-bold text-sky-300">--</span></div>
+        </div>
+        <div class="absolute bottom-3 right-3 pointer-events-none bg-slate-950/75 px-2.5 py-1 rounded text-[11px] mono text-slate-400">
+          Norte (-Z) | Este (+X) | Curvatura Lunar Activa
+        </div>
+      </div>
+    </div>
+
+    <!-- Visualizaciones 2D Sincronizadas: Panorama de Horizonte 360° + Domo Celeste Polar -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      
-      <!-- Panorama 360° (8 columnas) -->
       <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
         <div class="flex items-center justify-between mb-3">
           <div>
-            <h2 class="text-sm font-bold text-white">Perfil Panorámico del Horizonte 360° (Sin Atmósfera)</h2>
-            <p class="text-xs text-slate-400">Silueta del relieve LOLA, línea geométrica 0° y trayectorias orbitales en el ciclo</p>
+            <h2 class="text-sm font-bold text-white">Perfil Panorámico del Horizonte 360°</h2>
+            <p class="text-xs text-slate-400">Silueta topográfica exacta calculada desde el punto del Lander</p>
           </div>
           <div class="flex items-center gap-3 text-xs">
             <span class="flex items-center gap-1 text-amber-400"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Sol</span>
             <span class="flex items-center gap-1 text-sky-400"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> Tierra</span>
-            <span class="flex items-center gap-1 text-slate-400"><span class="w-3 h-2 bg-slate-600 inline-block"></span> Relieve</span>
           </div>
         </div>
-        <div class="relative w-full h-80 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
+        <div class="relative w-full h-72 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
           <canvas id="horizonCanvas" class="w-full h-full block"></canvas>
         </div>
       </div>
 
-      <!-- Sky-Dome Polar (4 columnas) -->
       <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
         <div class="mb-3">
           <h2 class="text-sm font-bold text-white">Domo Celeste Polar (Sky-Dome)</h2>
           <p class="text-xs text-slate-400">Proyección cenital 360° y libración terrestre</p>
         </div>
-        <div class="relative w-full h-80 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden">
+        <div class="relative w-full h-72 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden">
           <canvas id="skyDomeCanvas" class="w-full h-full block"></canvas>
         </div>
       </div>
-
     </div>
 
   </main>
 
-  <script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
     let currentReport = null;
     let currentIndex = 0;
-    let playInterval = null;
+    let playRafId = null;
+    let lastFrameTime = 0;
+    let simSpeedHoursPerSec = 4; // Base 1x = 4 horas simuladas por segundo real
+    let fractionalIndex = 0;
 
+    // --- VARIABLES ESCENA 3D THREE.JS ---
+    let scene, camera, renderer, controls;
+    let terrainMesh = null;
+    let landerGroup = null;
+    let dishPivot = null;
+    let sunLight = null;
+    let sunSphere = null;
+    let sunVectorLine = null;
+    let earthVectorLine = null;
+    let earthBeacon = null;
+
+    function initThreeJS() {
+      const container = document.getElementById('threeContainer');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x02040a);
+
+      // Campo de estrellas de fondo
+      const starsGeo = new THREE.BufferGeometry();
+      const starCount = 1500;
+      const starPositions = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount * 3; i++) {
+        starPositions[i] = (Math.random() - 0.5) * 1800;
+      }
+      starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+      const starsMat = new THREE.PointsMaterial({ color: 0xcbd5e1, size: 1.2, sizeAttenuation: false });
+      scene.add(new THREE.Points(starsGeo, starsMat));
+
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 2500);
+      camera.position.set(110, 75, 130);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI * 0.49;
+      controls.minDistance = 8;
+      controls.maxDistance = 420;
+
+      // Luz ambiental mínima (rebote de regolito; en la Luna no hay dispersión atmosférica)
+      const ambientLight = new THREE.AmbientLight(0x1e293b, 0.22);
+      scene.add(ambientLight);
+
+      // Luz Direccional Solar con sombras de alta resolución
+      sunLight = new THREE.DirectionalLight(0xfffbeb, 3.2);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.width = 2048;
+      sunLight.shadow.mapSize.height = 2048;
+      sunLight.shadow.camera.near = 10;
+      sunLight.shadow.camera.far = 700;
+      const d = 190;
+      sunLight.shadow.camera.left = -d;
+      sunLight.shadow.camera.right = d;
+      sunLight.shadow.camera.top = d;
+      sunLight.shadow.camera.bottom = -d;
+      sunLight.shadow.bias = -0.0005;
+      scene.add(sunLight);
+      scene.add(sunLight.target);
+
+      // Esfera visual del Sol lejano
+      sunSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(5, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xfde047 })
+      );
+      scene.add(sunSphere);
+
+      // Construir Módulo de Aterrizaje (Lander) en el centro (0,0,0)
+      buildLanderModel();
+
+      // Vectores 3D hacia Sol y Tierra
+      const sunLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0, 50, 0)]);
+      sunVectorLine = new THREE.Line(sunLineGeo, new THREE.LineBasicMaterial({ color: 0xfbbf24 }));
+      scene.add(sunVectorLine);
+
+      const earthLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0, 50, 0)]);
+      earthVectorLine = new THREE.Line(earthLineGeo, new THREE.LineBasicMaterial({ color: 0x38bdf8 }));
+      scene.add(earthVectorLine);
+
+      earthBeacon = new THREE.Mesh(
+        new THREE.SphereGeometry(2.6, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+      );
+      scene.add(earthBeacon);
+
+      // Brújula en superficie (Norte -Z, Este +X)
+      const gridHelper = new THREE.PolarGridHelper(160, 8, 4, 64, 0x1e293b, 0x0f172a);
+      gridHelper.position.y = -12;
+      scene.add(gridHelper);
+
+      animateThreeJS();
+    }
+
+    function buildLanderModel() {
+      landerGroup = new THREE.Group();
+
+      // Cuerpo principal (Mylar dorado)
+      const bodyGeo = new THREE.CylinderGeometry(1.4, 1.7, 1.8, 8);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.75, roughness: 0.3 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 1.6;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      landerGroup.add(body);
+
+      // Módulo superior blanco
+      const topGeo = new THREE.CylinderGeometry(1.1, 1.3, 1.0, 8);
+      const topMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.2, roughness: 0.5 });
+      const top = new THREE.Mesh(topGeo, topMat);
+      top.position.y = 2.9;
+      top.castShadow = true;
+      landerGroup.add(top);
+
+      // 4 Patas de aterrizaje
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.6, roughness: 0.4 });
+      for (let i = 0; i < 4; i++) {
+        const angle = (i * Math.PI) / 2 + Math.PI / 4;
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.2), legMat);
+        leg.position.set(Math.cos(angle) * 1.8, 0.9, Math.sin(angle) * 1.8);
+        leg.rotation.z = -Math.cos(angle) * 0.45;
+        leg.rotation.x = Math.sin(angle) * 0.45;
+        leg.castShadow = true;
+        landerGroup.add(leg);
+      }
+
+      // Antena parabólica direccional que apunta a la Tierra
+      dishPivot = new THREE.Group();
+      dishPivot.position.set(0, 3.6, 0);
+      const dish = new THREE.Mesh(
+        new THREE.SphereGeometry(0.85, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.42),
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, side: THREE.DoubleSide, metalness: 0.4, roughness: 0.3 })
+      );
+      dish.rotation.x = Math.PI;
+      dishPivot.add(dish);
+      landerGroup.add(dishPivot);
+
+      scene.add(landerGroup);
+    }
+
+    function updateTerrainMesh3D(terrainData) {
+      if (terrainMesh) {
+        scene.remove(terrainMesh);
+        terrainMesh.geometry.dispose();
+        terrainMesh.material.dispose();
+      }
+
+      const N = terrainData.grid_size; // 120
+      const scaleM = terrainData.pixel_scale_m; // 300 m
+      const elevations = terrainData.elevations;
+
+      // Escala visual: 1 unidad 3D = 100 metros reales (36 km -> 360 unidades 3D)
+      const unitScale = 0.01;
+      const worldSize = (N - 1) * scaleM * unitScale;
+      const moonRadiusM = 1737400.0;
+
+      const geometry = new THREE.PlaneGeometry(worldSize, worldSize, N - 1, N - 1);
+      geometry.rotateX(-Math.PI / 2);
+
+      const posAttr = geometry.attributes.position;
+      const colors = new Float32Array(posAttr.count * 3);
+
+      for (let i = 0; i < posAttr.count; i++) {
+        const row = Math.floor(i / N);
+        const col = i % N;
+        const rawElevM = elevations[row][col];
+
+        // Distancia real al centro para aplicar caída por curvatura lunar
+        const dxM = (col - N / 2) * scaleM;
+        const dzM = (row - N / 2) * scaleM;
+        const distSqM = dxM * dxM + dzM * dzM;
+        const curvatureDropM = distSqM / (2.0 * moonRadiusM);
+
+        const yWorld = (rawElevM - curvatureDropM) * unitScale;
+        posAttr.setY(i, yWorld);
+
+        // Coloreado sutil por elevación (cráteres profundos más oscuros, crestas más claras)
+        const shade = THREE.MathUtils.clamp(0.42 + (rawElevM / 1800) * 0.25, 0.22, 0.72);
+        colors[i * 3] = shade;
+        colors[i * 3 + 1] = shade * 1.02;
+        colors[i * 3 + 2] = shade * 1.06;
+      }
+
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.94,
+        metalness: 0.02,
+      });
+
+      terrainMesh = new THREE.Mesh(geometry, material);
+      terrainMesh.receiveShadow = true;
+      terrainMesh.castShadow = true;
+      scene.add(terrainMesh);
+    }
+
+    function azElToVector3(azDeg, elDeg, radius) {
+      const az = THREE.MathUtils.degToRad(azDeg);
+      const el = THREE.MathUtils.degToRad(elDeg);
+      // Norte = -Z, Este = +X, Arriba = +Y
+      const x = radius * Math.cos(el) * Math.sin(az);
+      const y = radius * Math.sin(el);
+      const z = -radius * Math.cos(el) * Math.cos(az);
+      return new THREE.Vector3(x, y, z);
+    }
+
+    function updateScene3DForStep(step) {
+      if (!sunLight) return;
+
+      // Posicionar Sol y luz direccional
+      const sunPos = azElToVector3(step.sun.az, step.sun.el, 260);
+      sunLight.position.copy(sunPos);
+      sunSphere.position.copy(sunPos);
+
+      // Si el Sol está por debajo del horizonte geométrico lejano, atenuar luz directa
+      sunLight.intensity = step.sun.el > -2.5 ? 3.3 : 0.0;
+
+      // Vector visual hacia el Sol desde el Lander
+      const sunVecEnd = azElToVector3(step.sun.az, step.sun.el, 140);
+      sunVectorLine.geometry.setFromPoints([new THREE.Vector3(0, 2.2, 0), sunVecEnd]);
+      sunVectorLine.material.color.setHex(step.sun.visible ? 0xfbbf24 : 0x78350f);
+
+      // Posicionar vector de enlace hacia la Tierra y orientar antena parabólica
+      const earthPos = azElToVector3(step.earth.az, step.earth.el, 150);
+      earthBeacon.position.copy(earthPos);
+      earthVectorLine.geometry.setFromPoints([new THREE.Vector3(0, 3.6, 0), earthPos]);
+
+      if (step.earth.visible) {
+        earthVectorLine.material.color.setHex(0x38bdf8);
+        earthBeacon.material.color.setHex(0x38bdf8);
+      } else {
+        earthVectorLine.material.color.setHex(0xf43f5e);
+        earthBeacon.material.color.setHex(0xf43f5e);
+      }
+
+      if (dishPivot) {
+        dishPivot.lookAt(earthPos);
+      }
+
+      // Actualizar HUD flotante en el visor 3D
+      const shadowHud = document.getElementById('hudShadowState');
+      shadowHud.textContent = step.sun.visible ? 'ILUMINADO (SOL DIRECTO)' : 'EN SOMBRA TOPOGRÁFICA';
+      shadowHud.className = step.sun.visible ? 'font-bold text-amber-300' : 'font-bold text-slate-400';
+
+      const dteHud = document.getElementById('hudDteState');
+      dteHud.textContent = step.earth.visible ? 'ACTIVO (LÍNEA DESPEJADA)' : 'BLOQUEADO POR RELIEVE';
+      dteHud.className = step.earth.visible ? 'font-bold text-sky-300' : 'font-bold text-rose-400';
+    }
+
+    function animateThreeJS() {
+      requestAnimationFrame(animateThreeJS);
+      if (controls) controls.update();
+      if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+
+    // --- LÓGICA DE DATOS Y CONTROLES UI ---
     async function init() {
+      initThreeJS();
+
       const res = await fetch('/api/sites');
       const sites = await res.json();
       const select = document.getElementById('siteSelect');
@@ -228,6 +539,44 @@
         box.classList.toggle('grid', isCustom);
         if (!isCustom) loadScenario();
       });
+
+      // Eventos botones
+      document.getElementById('btnPrevLunar').onclick = () => shiftDateDays(-29.53);
+      document.getElementById('btnHalfLunar').onclick = () => shiftDateDays(14.77);
+      document.getElementById('btnNextLunar').onclick = () => shiftDateDays(29.53);
+      document.getElementById('btnSeason').onclick = () => shiftDateDays(90);
+      document.getElementById('btnEvaluate').onclick = loadScenario;
+      document.getElementById('playBtn').onclick = togglePlay;
+      document.getElementById('timeSlider').oninput = (e) => {
+        stopPlay();
+        onSliderChange(e.target.value);
+      };
+
+      // Selector velocidad Timeline
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll('.speed-btn').forEach(b => {
+            b.className = 'speed-btn px-2 py-1 rounded text-slate-400 hover:text-white';
+          });
+          btn.className = 'speed-btn px-2 py-1 rounded bg-slate-800 text-sky-300 font-bold';
+          const mult = parseInt(btn.dataset.speed, 10);
+          simSpeedHoursPerSec = 4 * mult;
+        };
+      });
+
+      // Presets de cámara 3D
+      document.getElementById('camOrbitBtn').onclick = () => {
+        camera.position.set(110, 75, 130);
+        controls.target.set(0, 0, 0);
+      };
+      document.getElementById('camLanderBtn').onclick = () => {
+        camera.position.set(14, 9, 18);
+        controls.target.set(0, 2, 0);
+      };
+      document.getElementById('camTopBtn').onclick = () => {
+        camera.position.set(0, 260, 1);
+        controls.target.set(0, 0, 0);
+      };
 
       await loadScenario();
     }
@@ -261,24 +610,28 @@
         if (!res.ok) throw new Error(await res.text());
         currentReport = await res.json();
 
-        // Actualizar metadatos del sitio
         document.getElementById('siteProgramBadge').textContent = currentReport.site.program;
         document.getElementById('siteTitle').textContent = currentReport.site.name;
         document.getElementById('siteCoordsLabel').textContent =
           `Lat: ${currentReport.site.lat.toFixed(3)}° | Lon: ${currentReport.site.lon.toFixed(3)}° | Elev: ${currentReport.site.elevation_km} km`;
         document.getElementById('siteDescription').textContent = currentReport.site.description;
 
-        // Resumen del ciclo
-        document.getElementById('kpiSunMax').textContent = `Máx ciclo: ${currentReport.summary.max_solar_elevation_deg.toFixed(1)}°`;
+        document.getElementById('kpiSunMax').textContent = `Máx: ${currentReport.summary.max_solar_elevation_deg.toFixed(1)}°`;
         document.getElementById('kpiSunTotalPct').textContent = `${currentReport.summary.sunlight_availability_pct}% (${currentReport.summary.sunlit_hours}h)`;
         document.getElementById('kpiDteTotalPct').textContent = `${currentReport.summary.dte_availability_pct}% (${currentReport.summary.dte_comm_hours}h)`;
+
+        // Actualizar terreno 3D
+        if (currentReport.terrain_mesh) {
+          updateTerrainMesh3D(currentReport.terrain_mesh);
+        }
 
         const slider = document.getElementById('timeSlider');
         slider.max = currentReport.timeline.length - 1;
         slider.value = 0;
+        fractionalIndex = 0;
         onSliderChange(0);
 
-        badge.textContent = 'EFEMÉRIDES SINCRONIZADAS';
+        badge.textContent = 'ESCENA 3D Y EFEMÉRIDES LISTAS';
         badge.className = 'mono text-xs px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
       } catch (err) {
         console.error(err);
@@ -295,7 +648,6 @@
       document.getElementById('currentTimestampLabel').textContent = `${step.timestamp_utc} UTC`;
       document.getElementById('stepCounterLabel').textContent = `Hora ${currentIndex + 1} / ${currentReport.timeline.length}`;
 
-      // KPIs Sol
       document.getElementById('kpiSunEl').textContent = `${step.sun.el.toFixed(2)}°`;
       document.getElementById('kpiSolarEff').textContent = `${step.sun.solar_power_efficiency_pct.toFixed(1)}%`;
       const sunPill = document.getElementById('sunStatusPill');
@@ -307,7 +659,6 @@
         sunPill.className = 'mono text-[11px] px-2 py-0.5 rounded font-bold bg-slate-800 text-slate-400';
       }
 
-      // Countdown Sunset
       const sunsetEl = document.getElementById('kpiSunsetCountdown');
       if (!step.sun.visible) {
         sunsetEl.textContent = '0.0 h (En sombra)';
@@ -322,7 +673,6 @@
           : 'mono text-2xl font-bold text-amber-300';
       }
 
-      // KPIs Tierra
       document.getElementById('kpiEarthEl').textContent = `${step.earth.el.toFixed(2)}°`;
       document.getElementById('kpiEarthAz').textContent = `Az: ${step.earth.az.toFixed(1)}°`;
       document.getElementById('kpiHorizonAtEarth').textContent = `${step.earth.horizon_el.toFixed(2)}°`;
@@ -335,7 +685,6 @@
         earthPill.className = 'mono text-[11px] px-2 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300';
       }
 
-      // Countdown Earthset
       const earthsetEl = document.getElementById('kpiEarthsetCountdown');
       if (!step.earth.visible) {
         earthsetEl.textContent = '0.0 h (Ocluida)';
@@ -348,28 +697,37 @@
         earthsetEl.className = 'mono text-2xl font-bold text-sky-300';
       }
 
+      updateScene3DForStep(step);
       drawHorizonPanorama();
       drawSkyDome();
     }
 
     function togglePlay() {
-      if (playInterval) {
+      if (playRafId) {
         stopPlay();
       } else {
         document.getElementById('playBtn').textContent = '⏸ Pausar';
-        playInterval = setInterval(() => {
-          const slider = document.getElementById('timeSlider');
-          let next = (currentIndex + 1) % currentReport.timeline.length;
-          slider.value = next;
-          onSliderChange(next);
-        }, 70);
+        lastFrameTime = performance.now();
+        fractionalIndex = currentIndex;
+        const tick = (now) => {
+          const dtSec = (now - lastFrameTime) / 1000;
+          lastFrameTime = now;
+          fractionalIndex = (fractionalIndex + dtSec * simSpeedHoursPerSec) % currentReport.timeline.length;
+          const nextIdx = Math.floor(fractionalIndex);
+          if (nextIdx !== currentIndex) {
+            document.getElementById('timeSlider').value = nextIdx;
+            onSliderChange(nextIdx);
+          }
+          playRafId = requestAnimationFrame(tick);
+        };
+        playRafId = requestAnimationFrame(tick);
       }
     }
 
     function stopPlay() {
-      if (playInterval) {
-        clearInterval(playInterval);
-        playInterval = null;
+      if (playRafId) {
+        cancelAnimationFrame(playRafId);
+        playRafId = null;
         document.getElementById('playBtn').textContent = '▶ Simular Ciclo';
       }
     }
@@ -389,7 +747,6 @@
       const plotW = W - pad.left - pad.right;
       const plotH = H - pad.top - pad.bottom;
 
-      // Rango vertical dinámico según latitud (Polo Sur tiene elevaciones bajas; ecuador llega a 90°)
       const maxSun = Math.max(...currentReport.timeline.map(t => t.sun.el), ...currentReport.timeline.map(t => t.earth.el));
       const minEl = -15;
       const maxEl = maxSun > 35 ? 90 : 30;
@@ -398,8 +755,6 @@
       const elToY = el => pad.top + plotH - ((el - minEl) / (maxEl - minEl)) * plotH;
 
       ctx.clearRect(0, 0, W, H);
-
-      // Grilla de elevación y acimut
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
       ctx.font = '10px JetBrains Mono';
@@ -425,7 +780,6 @@
         ctx.fillText(c.lbl, x - 16, H - 8);
       });
 
-      // Línea del horizonte geométrico (0°)
       const yZero = elToY(0);
       ctx.strokeStyle = '#475569';
       ctx.setLineDash([4, 4]);
@@ -435,71 +789,52 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Trayectoria completa del Sol en el ciclo (punteada)
       ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       currentReport.timeline.forEach((pt, idx) => {
         const x = azToX(pt.sun.az);
         const y = elToY(pt.sun.el);
-        if (idx === 0 || Math.abs(pt.sun.az - currentReport.timeline[idx - 1].sun.az) > 180) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
+        if (idx === 0 || Math.abs(pt.sun.az - currentReport.timeline[idx - 1].sun.az) > 180) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       });
       ctx.stroke();
 
-      // Trayectoria completa de la Tierra (libración)
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       currentReport.timeline.forEach((pt, idx) => {
         const x = azToX(pt.earth.az);
         const y = elToY(pt.earth.el);
-        if (idx === 0 || Math.abs(pt.earth.az - currentReport.timeline[idx - 1].earth.az) > 180) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
+        if (idx === 0 || Math.abs(pt.earth.az - currentReport.timeline[idx - 1].earth.az) > 180) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       });
       ctx.stroke();
 
-      // Silueta del terreno 360° (LOLA Horizon Profile)
       const profile = currentReport.horizon_profile_360;
       ctx.fillStyle = 'rgba(30, 41, 59, 0.88)';
       ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(azToX(0), pad.top + plotH);
-      for (let az = 0; az < 360; az++) {
-        ctx.lineTo(azToX(az), elToY(profile[az]));
-      }
+      for (let az = 0; az < 360; az++) ctx.lineTo(azToX(az), elToY(profile[az]));
       ctx.lineTo(azToX(360), elToY(profile[0]));
       ctx.lineTo(azToX(360), pad.top + plotH);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // Posición instantánea de Sol y Tierra
       const cur = currentReport.timeline[currentIndex];
-      const sunX = azToX(cur.sun.az);
-      const sunY = elToY(cur.sun.el);
-      const earthX = azToX(cur.earth.az);
-      const earthY = elToY(cur.earth.el);
-
-      // Dibujar Sol
       ctx.beginPath();
-      ctx.arc(sunX, sunY, 7, 0, Math.PI * 2);
+      ctx.arc(azToX(cur.sun.az), elToY(cur.sun.el), 7, 0, Math.PI * 2);
       ctx.fillStyle = cur.sun.visible ? '#fbbf24' : '#78350f';
       ctx.fill();
       ctx.strokeStyle = '#fef3c7';
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Dibujar Tierra
       ctx.beginPath();
-      ctx.arc(earthX, earthY, 6, 0, Math.PI * 2);
+      ctx.arc(azToX(cur.earth.az), elToY(cur.earth.el), 6, 0, Math.PI * 2);
       ctx.fillStyle = cur.earth.visible ? '#38bdf8' : '#1e3a8a';
       ctx.fill();
       ctx.strokeStyle = '#e0f2fe';
@@ -518,11 +853,10 @@
 
       const cx = rect.width / 2;
       const cy = rect.height / 2;
-      const R = Math.min(cx, cy) - 26;
+      const R = Math.min(cx, cy) - 24;
 
       ctx.clearRect(0, 0, rect.width, rect.height);
 
-      // Anillos de elevación (0° borde, 45° medio, 90° centro)
       [0, 30, 60].forEach(el => {
         const r = R * (1 - el / 90);
         ctx.beginPath();
@@ -532,15 +866,13 @@
         ctx.stroke();
       });
 
-      // Ejes cardinales
       ctx.fillStyle = '#64748b';
       ctx.font = '10px JetBrains Mono';
-      ctx.fillText('N', cx - 3, cy - R - 8);
-      ctx.fillText('S', cx - 3, cy + R + 15);
-      ctx.fillText('E', cx + R + 7, cy + 3);
-      ctx.fillText('O', cx - R - 14, cy + 3);
+      ctx.fillText('N', cx - 3, cy - R - 7);
+      ctx.fillText('S', cx - 3, cy + R + 14);
+      ctx.fillText('E', cx + R + 6, cy + 3);
+      ctx.fillText('O', cx - R - 13, cy + 3);
 
-      // Máscara de obstrucción del horizonte
       const profile = currentReport.horizon_profile_360;
       ctx.beginPath();
       for (let az = 0; az <= 360; az++) {
@@ -557,7 +889,6 @@
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Posición actual de Sol y Tierra en coordenadas polares
       const cur = currentReport.timeline[currentIndex];
       const plotPolar = (az, el, color, radius) => {
         const clampedEl = Math.max(-10, Math.min(90, el));
@@ -580,6 +911,12 @@
     }
 
     window.addEventListener('resize', () => {
+      const container = document.getElementById('threeContainer');
+      if (renderer && camera && container) {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      }
       if (currentReport) {
         drawHorizonPanorama();
         drawSkyDome();
