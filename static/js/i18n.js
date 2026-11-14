@@ -1,4 +1,4 @@
-// static/js/i18n.js — Traducción completa de toda la página (ES <-> EN)
+// static/js/i18n.js — Traducción completa de toda la página con recarga automática (ES <-> EN)
 
 const RAW_DICTIONARY = {
   // Header y Estados
@@ -246,7 +246,7 @@ const RAW_DICTIONARY = {
   "Alta viabilidad energética y de telemetría": "High power & telemetry feasibility",
   "Viabilidad moderada: revisar reservas de batería": "Moderate feasibility: check battery reserves",
 
-  // Consola de Misión (Modo Ingeniería - Nueva tarjeta)
+  // Consola de Misión (Modo Ingeniería)
   "paneles verticales con seguimiento (cos el)": "vertical tracking panels (cos el)",
   "los umbrales deciden el veredicto (aquí y en el comparador)":
     "thresholds determine the verdict (here and in comparator)",
@@ -350,6 +350,9 @@ class AppTranslator {
     this.setupObserver();
     if (this.lang === "en") {
       this.applyLanguage("en");
+      // Refuerzos para tarjetas cargadas de forma asíncrona tras la recarga
+      setTimeout(() => this.applyLanguage("en"), 350);
+      setTimeout(() => this.applyLanguage("en"), 1000);
     }
   }
 
@@ -393,8 +396,7 @@ class AppTranslator {
   setLanguage(newLang) {
     this.lang = newLang;
     localStorage.setItem("lunar_nav_lang", newLang);
-    this.updateButtonLabel();
-    this.applyLanguage(newLang);
+    window.location.reload();
   }
 
   translateCore(text) {
