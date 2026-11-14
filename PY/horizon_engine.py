@@ -1,6 +1,6 @@
 import json
 import numpy as np
-from ephemeris_fetcher import get_site_ephemeris
+from PY.ephemeris_fetcher import get_site_ephemeris
 
 MOON_RADIUS_KM = 1737.4
 
