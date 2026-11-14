@@ -18,6 +18,43 @@
     body { font-family: 'Inter', sans-serif; background-color: #090d16; color: #e2e8f0; }
     .mono { font-family: 'JetBrains Mono', monospace; }
     input[type="range"] { accent-color: #38bdf8; }
+
+    /* Etiquetas HTML ancladas a la escena 3D (CSS2DRenderer) */
+    .vec-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.35;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(2, 6, 23, 0.82);
+      border: 1px solid currentColor;
+      white-space: nowrap;
+      margin-top: -14px;   /* separa la etiqueta del marcador (anclada abajo-centro) */
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+    .vec-label .sub { color: #94a3b8; font-size: 10px; }
+    .vec-label.sun { color: #fcd34d; }
+    .vec-label.earth { color: #7dd3fc; }
+    .vec-label.blocked { opacity: 0.85; border-style: dashed; }
+    .hit-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fecdd3;
+      background: rgba(76, 5, 25, 0.85);
+      border: 1px solid #f43f5e;
+      white-space: nowrap;
+      margin-top: 12px;    /* anclada arriba-centro, debajo del punto de bloqueo */
+    }
+    .cardinal-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      text-shadow: 0 0 4px #000;
+    }
+    .cardinal-label.north { color: #f87171; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -184,13 +221,28 @@
 
         <!-- Presets de Cámara y Leyenda 3D -->
         <div class="flex flex-wrap items-center gap-2">
-          <div class="flex items-center gap-3 text-xs mr-3">
-            <span class="flex items-center gap-1 text-amber-400"><span class="w-3 h-0.5 bg-amber-400 inline-block"></span> Vector Sol</span>
-            <span class="flex items-center gap-1 text-sky-400"><span class="w-3 h-0.5 bg-sky-400 inline-block"></span> Enlace Tierra</span>
-          </div>
           <button id="camOrbitBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Vista Orbital</button>
           <button id="camLanderBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Superficie (Lander)</button>
           <button id="camTopBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Cenital (N ↑)</button>
+          <button id="camSunBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-amber-300 rounded-lg">Mirar al Sol</button>
+          <button id="camEarthBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-sky-500/40 text-sky-300 rounded-lg">Mirar a la Tierra</button>
+        </div>
+      </div>
+
+      <!-- Leyenda de vectores y capas del visor 3D -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-2 text-[11px]">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-400">
+          <span class="flex items-center gap-1.5"><span class="w-4 h-[3px] rounded bg-amber-400 inline-block"></span><span class="text-amber-300">Vector Sol</span></span>
+          <span class="flex items-center gap-1.5"><span class="w-4 h-[3px] rounded bg-sky-400 inline-block"></span><span class="text-sky-300">Vector Tierra (DTE)</span></span>
+          <span class="flex items-center gap-1.5"><span class="w-4 inline-block border-t-2 border-dashed border-rose-400"></span>Tramo bloqueado por relieve</span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block ring-2 ring-rose-500/30"></span>Punto de bloqueo</span>
+          <span class="flex items-center gap-1.5"><span class="w-4 h-px bg-slate-300 inline-block"></span>Horizonte topográfico</span>
+          <span class="flex items-center gap-1.5"><span class="w-4 inline-block border-t border-dashed border-slate-500"></span>Horizonte geométrico 0°</span>
+        </div>
+        <div class="flex items-center gap-3 text-slate-300">
+          <label class="flex items-center gap-1.5 cursor-pointer"><input id="togglePaths" type="checkbox" checked class="accent-sky-400"> Trayectorias del periodo</label>
+          <label class="flex items-center gap-1.5 cursor-pointer"><input id="toggleHorizon3D" type="checkbox" checked class="accent-sky-400"> Domo y horizonte</label>
+          <label class="flex items-center gap-1.5 cursor-pointer"><input id="toggleXray" type="checkbox" checked class="accent-sky-400"> Rayos X (ver tras relieve)</label>
         </div>
       </div>
 
@@ -241,6 +293,10 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { Line2 } from 'three/addons/lines/Line2.js';
+    import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+    import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
     let currentReport = null;
     let currentIndex = 0;
@@ -255,10 +311,21 @@
     let landerGroup = null;
     let dishPivot = null;
     let sunLight = null;
-    let sunSphere = null;
-    let sunVectorLine = null;
-    let earthVectorLine = null;
-    let earthBeacon = null;
+    let labelRenderer = null;
+
+    // --- VECTORES SOL / TIERRA ---
+    // Escala de escena: 1 unidad = 100 m. El terreno mide ±178 u (esquinas ~252 u),
+    // así que el domo celeste va en 260 u para que Sol y Tierra queden SIEMPRE fuera del relieve.
+    const SKY_R = 260;
+    const RAY_ORIGIN = new THREE.Vector3(0, 0.05, 0);   // ojo del observador a ras de suelo (igual que el backend)
+    const ANTENNA_POS = new THREE.Vector3(0, 3.6, 0);   // la línea se dibuja desde la antena del lander
+    const lineMaterials = [];                           // LineMaterial necesita la resolución del canvas
+    const raycaster = new THREE.Raycaster();
+    let sunVec = null;
+    let earthVec = null;
+    let skyGuides = null;       // anillos de elevación + cardinales (estático)
+    let scenarioGuides = null;  // horizonte topográfico 3D + trayectorias (cambia por escenario)
+    let xrayEnabled = true;
 
     function initThreeJS() {
       const container = document.getElementById('threeContainer');
@@ -316,37 +383,391 @@
       scene.add(sunLight);
       scene.add(sunLight.target);
 
-      // Esfera visual del Sol lejano
-      sunSphere = new THREE.Mesh(
-        new THREE.SphereGeometry(5, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0xfde047 })
-      );
-      scene.add(sunSphere);
+      // Renderer de etiquetas HTML (se inserta antes del HUD para que el HUD quede encima)
+      labelRenderer = new CSS2DRenderer();
+      labelRenderer.setSize(width, height);
+      Object.assign(labelRenderer.domElement.style, { position: 'absolute', top: '0', left: '0', pointerEvents: 'none' });
+      container.insertBefore(labelRenderer.domElement, container.firstChild);
 
       // Construir Módulo de Aterrizaje (Lander) en el centro (0,0,0)
       buildLanderModel();
 
+      // Domo celeste: anillos de elevación y puntos cardinales
+      skyGuides = buildSkyGuides();
+      scene.add(skyGuides);
+
       // Vectores 3D hacia Sol y Tierra
-      const sunLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0, 50, 0)]);
-      sunVectorLine = new THREE.Line(sunLineGeo, new THREE.LineBasicMaterial({ color: 0xfbbf24 }));
-      scene.add(sunVectorLine);
-
-      const earthLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0, 50, 0)]);
-      earthVectorLine = new THREE.Line(earthLineGeo, new THREE.LineBasicMaterial({ color: 0x38bdf8 }));
-      scene.add(earthVectorLine);
-
-      earthBeacon = new THREE.Mesh(
-        new THREE.SphereGeometry(2.6, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-      );
-      scene.add(earthBeacon);
-
-      // Brújula en superficie (Norte -Z, Este +X)
-      const gridHelper = new THREE.PolarGridHelper(160, 8, 4, 64, 0x1e293b, 0x0f172a);
-      gridHelper.position.y = -12;
-      scene.add(gridHelper);
+      sunVec = createBodyVector({
+        kind: 'sun', name: 'Sol', icon: '☀',
+        color: 0xfbbf24, dimColor: 0x92400e, markerRadius: 7, glowColor: '255, 214, 102',
+      });
+      earthVec = createBodyVector({
+        kind: 'earth', name: 'Tierra', icon: '🌍',
+        color: 0x38bdf8, dimColor: 0x1e3a8a, markerRadius: 5, glowColor: '96, 200, 255',
+      });
 
       animateThreeJS();
+    }
+
+    // ---------- Utilidades para líneas gruesas (WebGL ignora linewidth en THREE.Line) ----------
+    function makeLineMaterial(opts) {
+      const mat = new LineMaterial({ worldUnits: false, ...opts });
+      const container = document.getElementById('threeContainer');
+      mat.resolution.set(container.clientWidth, container.clientHeight);
+      lineMaterials.push(mat);
+      return mat;
+    }
+
+    function makeLine(points, matOpts, { renderOrder = 0 } = {}) {
+      const geo = new LineGeometry();
+      geo.setPositions(points.flatMap(p => [p.x, p.y, p.z]));
+      const line = new Line2(geo, makeLineMaterial(matOpts));
+      line.computeLineDistances();
+      line.renderOrder = renderOrder;
+      line.frustumCulled = false; // la geometría se reescribe cada paso
+      return line;
+    }
+
+    function setLinePoints(line, points) {
+      // LineGeometry no permite cambiar el número de vértices de forma segura: se recrea
+      line.geometry.dispose();
+      const geo = new LineGeometry();
+      geo.setPositions(points.flatMap(p => [p.x, p.y, p.z]));
+      line.geometry = geo;
+      line.computeLineDistances();
+    }
+
+    function makeGlowTexture(rgb) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      const g = c.getContext('2d');
+      const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, `rgba(${rgb}, 1)`);
+      grad.addColorStop(0.25, `rgba(${rgb}, 0.55)`);
+      grad.addColorStop(1, `rgba(${rgb}, 0)`);
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 128, 128);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    function makeLabel(className, anchorY = 0.5) {
+      const div = document.createElement('div');
+      div.className = className;
+      const obj = new CSS2DObject(div);
+      obj.center.set(0.5, anchorY); // 1 = la etiqueta queda encima del punto, 0 = debajo
+      return obj;
+    }
+
+    // Marcador de bloqueo: anillo + cruz con tamaño constante en pantalla
+    function makeHitTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const g = c.getContext('2d');
+      g.strokeStyle = '#f43f5e';
+      g.lineWidth = 5;
+      g.beginPath(); g.arc(32, 32, 24, 0, Math.PI * 2); g.stroke();
+      g.lineWidth = 4;
+      g.beginPath(); g.moveTo(20, 20); g.lineTo(44, 44); g.moveTo(44, 20); g.lineTo(20, 44); g.stroke();
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    // ---------- Domo celeste estático ----------
+    function buildSkyGuides() {
+      const group = new THREE.Group();
+      const ringPoints = (elDeg, r = SKY_R) => {
+        const pts = [];
+        for (let az = 0; az <= 360; az += 2) pts.push(azElToVector3(az, elDeg, r));
+        return pts;
+      };
+
+      // Horizonte geométrico (0°): referencia de la esfera lunar sin relieve
+      group.add(makeLine(ringPoints(0), {
+        color: 0x64748b, linewidth: 1.4, dashed: true, dashSize: 6, gapSize: 4,
+        transparent: true, opacity: 0.85,
+      }));
+
+      // Círculos de elevación 10°, 30°, 60° (tenues)
+      [10, 30, 60].forEach(el => {
+        group.add(makeLine(ringPoints(el), { color: 0x1e293b, linewidth: 1, transparent: true, opacity: 0.9 }));
+      });
+
+      // Meridianos cada 45° hasta el cenit
+      for (let az = 0; az < 360; az += 45) {
+        const pts = [];
+        for (let el = 0; el <= 90; el += 3) pts.push(azElToVector3(az, el, SKY_R));
+        group.add(makeLine(pts, { color: 0x1e293b, linewidth: 1, transparent: true, opacity: 0.7 }));
+      }
+
+      // Cardinales sobre el horizonte geométrico
+      [['N', 0], ['E', 90], ['S', 180], ['O', 270]].forEach(([txt, az]) => {
+        const lbl = makeLabel('cardinal-label' + (txt === 'N' ? ' north' : ''));
+        lbl.element.textContent = txt;
+        lbl.position.copy(azElToVector3(az, 0, SKY_R + 8));
+        group.add(lbl);
+      });
+      return group;
+    }
+
+    // ---------- Vector a un cuerpo celeste (Sol o Tierra) ----------
+    function createBodyVector({ kind, name, icon, color, dimColor, markerRadius, glowColor }) {
+      const v = { kind, name, icon, color, dimColor, markerRadius };
+      const p0 = ANTENNA_POS.clone();
+      const p1 = new THREE.Vector3(0, SKY_R, 0);
+
+      // 1) Tramo con línea de vista despejada (sólido, grueso, con oclusión normal)
+      v.solid = makeLine([p0, p1], { color, linewidth: 3.5 }, { renderOrder: 2 });
+      // 2) Tramo bloqueado: desde el punto de impacto hasta el cuerpo (discontinuo, rojo)
+      v.blocked = makeLine([p0, p1], {
+        color: 0xf43f5e, linewidth: 2.2, dashed: true, dashSize: 5, gapSize: 4,
+        transparent: true, opacity: 0.9,
+      }, { renderOrder: 2 });
+      // 3) "Rayos X": el vector completo visto a través del relieve (sin depthTest, muy tenue)
+      v.ghost = makeLine([p0, p1], {
+        color, linewidth: 1.6, dashed: true, dashSize: 3, gapSize: 3,
+        transparent: true, opacity: 0.35, depthTest: false, depthWrite: false,
+      }, { renderOrder: 10 });
+      // 4) Línea de caída hasta el horizonte geométrico (lectura visual de la elevación)
+      v.drop = makeLine([p1, p1], {
+        color, linewidth: 1.2, dashed: true, dashSize: 2, gapSize: 2,
+        transparent: true, opacity: 0.6,
+      }, { renderOrder: 1 });
+
+      // Punta de flecha (cono) apuntando al cuerpo
+      const coneGeo = new THREE.ConeGeometry(2.6, 9, 20);
+      coneGeo.translate(0, -4.5, 0);   // la punta queda en el origen local
+      coneGeo.rotateX(Math.PI / 2);    // eje del cono → +Z (lookAt orienta +Z)
+      v.arrow = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({ color }));
+      v.arrow.renderOrder = 2;
+
+      // Marcador del cuerpo: núcleo + halo aditivo (siempre visible como "estrella" lejana)
+      v.marker = new THREE.Group();
+      v.core = new THREE.Mesh(
+        new THREE.SphereGeometry(markerRadius, 24, 16),
+        new THREE.MeshBasicMaterial({ color })
+      );
+      v.glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: makeGlowTexture(glowColor), blending: THREE.AdditiveBlending,
+        transparent: true, depthWrite: false, depthTest: false, // el halo se ve aunque el relieve tape al cuerpo
+      }));
+      v.glow.renderOrder = 12;
+      v.glow.scale.setScalar(markerRadius * 6);
+      v.marker.add(v.core, v.glow);
+      v.label = makeLabel(`vec-label ${kind}`, 1);
+      v.marker.add(v.label);
+
+      // Punto de bloqueo sobre el terreno (tamaño fijo en pantalla y visible a través del relieve)
+      v.hit = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: makeHitTexture(), sizeAttenuation: false, depthTest: false, depthWrite: false, transparent: true,
+      }));
+      v.hit.scale.setScalar(0.035);
+      v.hit.renderOrder = 11;
+      v.hitLabel = makeLabel('hit-label', 0);
+      v.hit.add(v.hitLabel);
+
+      scene.add(v.solid, v.blocked, v.ghost, v.drop, v.arrow, v.marker, v.hit);
+      return v;
+    }
+
+    // Busca dónde choca el rayo observador→cuerpo con la malla del terreno
+    function findTerrainHit(dir) {
+      if (!terrainMesh) return null;
+      raycaster.set(RAY_ORIGIN, dir);
+      raycaster.far = SKY_R * 1.2;
+      const hits = raycaster.intersectObject(terrainMesh, false);
+      return hits.find(h => h.distance > 0.8) || null; // ignora el triángulo bajo el propio lander
+    }
+
+    function fmtSigned(x, digits = 2) {
+      return `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(digits)}`;
+    }
+
+    function updateBodyVector(v, body) {
+      const dir = azElToVector3(body.az, body.el, 1).normalize();
+      const bodyPos = dir.clone().multiplyScalar(SKY_R);
+      const horizonPt = azElToVector3(body.az, 0, SKY_R);
+      const margin = body.el - body.horizon_el; // grados por encima (+) o debajo (−) del relieve
+
+      // Marcador del cuerpo
+      v.marker.position.copy(bodyPos);
+      v.core.material.color.setHex(body.visible ? v.color : v.dimColor);
+      v.glow.material.opacity = body.visible ? 1.0 : 0.3;
+
+      // Línea de caída al horizonte geométrico
+      setLinePoints(v.drop, [bodyPos, horizonPt]);
+      v.drop.visible = Math.abs(body.el) > 0.05;
+
+      // Vector fantasma (rayos X), siempre completo
+      setLinePoints(v.ghost, [ANTENNA_POS, bodyPos]);
+      v.ghost.visible = xrayEnabled;
+
+      // Tramos visible / bloqueado. El veredicto lo da el backend (DEM a 60 m);
+      // la malla 3D (300 m) sólo se usa para ubicar dónde ocurre el bloqueo.
+      let hit = null;
+      if (body.visible) {
+        setLinePoints(v.solid, [ANTENNA_POS, bodyPos]);
+        v.solid.visible = true;
+        v.blocked.visible = false;
+      } else {
+        hit = findTerrainHit(dir);
+        // Con elevación negativa el rayo entra al suelo a pocos metros del lander: eso no es
+        // un "bloqueo por relieve" sino que el cuerpo está bajo el horizonte geométrico.
+        if (hit && body.el < 0 && hit.distance < 15) hit = null;
+        const breakPt = hit ? hit.point : ANTENNA_POS;
+        v.solid.visible = !!hit;
+        if (hit) setLinePoints(v.solid, [ANTENNA_POS, breakPt]);
+        setLinePoints(v.blocked, [breakPt, bodyPos]);
+        v.blocked.visible = true;
+      }
+      v.solid.material.color.setHex(v.color);
+
+      // Flecha: en el extremo del vector, justo antes del marcador
+      v.arrow.visible = body.visible;
+      v.arrow.position.copy(dir.clone().multiplyScalar(SKY_R - v.markerRadius - 1));
+      v.arrow.lookAt(bodyPos.clone().multiplyScalar(2));
+
+      // Punto de bloqueo
+      v.hit.visible = !!hit;
+      v.hitLabel.visible = !!hit; // CSS2DRenderer no hereda la visibilidad del padre
+      if (hit) {
+        v.hit.position.copy(hit.point);
+        const horizKm = Math.hypot(hit.point.x, hit.point.z) * 0.1;
+        const reliefM = hit.point.y * 100;
+        v.hitLabel.element.textContent = `${v.icon} bloqueo a ${horizKm.toFixed(1)} km · relieve ${fmtSigned(reliefM, 0)} m`;
+      }
+
+      // Etiqueta del cuerpo
+      const status = body.visible
+        ? (v.kind === 'sun' ? 'ILUMINA' : 'DTE OK')
+        : (body.el < 0 && !hit ? 'BAJO HORIZONTE' : 'BLOQUEADO');
+      v.label.element.className = `vec-label ${v.kind}${body.visible ? '' : ' blocked'}`;
+      v.label.element.innerHTML =
+        `${v.icon} <b>${v.name}</b> · ${status}<br>` +
+        `El ${fmtSigned(body.el)}° · Az ${body.az.toFixed(1)}°<br>` +
+        `<span class="sub">Margen sobre relieve: ${fmtSigned(margin)}°</span>`;
+
+      return { dir, bodyPos };
+    }
+
+    // Evita que las etiquetas de Sol y Tierra se encimen: la del cuerpo que se ve más arriba
+    // en pantalla va encima de su marcador y la otra debajo.
+    const _projA = new THREE.Vector3();
+    const _projB = new THREE.Vector3();
+    function placeBodyLabels() {
+      if (!sunVec || !earthVec) return;
+      _projA.copy(sunVec.marker.position).project(camera);
+      _projB.copy(earthVec.marker.position).project(camera);
+      const sunOnTop = _projA.y >= _projB.y;
+      const set = (v, above) => {
+        v.label.center.set(0.5, above ? 1 : 0);
+        v.label.element.style.marginTop = above ? '-14px' : '14px';
+      };
+      set(sunVec, sunOnTop);
+      set(earthVec, !sunOnTop);
+    }
+
+    // ---------- Guías dependientes del escenario: horizonte topográfico y trayectorias ----------
+    function disposeGroup(group) {
+      group.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          const i = lineMaterials.indexOf(obj.material);
+          if (i >= 0) lineMaterials.splice(i, 1);
+          obj.material.dispose();
+        }
+        if (obj.isCSS2DObject) obj.element.remove();
+      });
+    }
+
+    function rebuildScenarioGuides(report) {
+      if (scenarioGuides) {
+        scene.remove(scenarioGuides);
+        disposeGroup(scenarioGuides);
+      }
+      scenarioGuides = new THREE.Group();
+      scenarioGuides.userData.horizon = new THREE.Group();
+      scenarioGuides.userData.paths = new THREE.Group();
+      scenarioGuides.add(scenarioGuides.userData.horizon, scenarioGuides.userData.paths);
+
+      // Silueta del horizonte topográfico proyectada sobre el domo (lo que "ve" el lander)
+      const profile = report.horizon_profile_360;
+      const rH = SKY_R - 1.5;
+      const silhouette = [];
+      for (let az = 0; az <= 360; az++) silhouette.push(azElToVector3(az, profile[az % 360], rH));
+      scenarioGuides.userData.horizon.add(makeLine(silhouette, { color: 0xcbd5e1, linewidth: 1.8 }, { renderOrder: 1 }));
+
+      // Relleno translúcido bajo la silueta = zona del cielo tapada por el relieve
+      const fillPos = [];
+      const fillIdx = [];
+      for (let az = 0; az <= 360; az++) {
+        const top = azElToVector3(az, profile[az % 360], rH);
+        const bottom = azElToVector3(az, Math.min(profile[az % 360], 0) - 4, rH);
+        fillPos.push(top.x, top.y, top.z, bottom.x, bottom.y, bottom.z);
+        if (az < 360) {
+          const a = az * 2;
+          fillIdx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+        }
+      }
+      const fillGeo = new THREE.BufferGeometry();
+      fillGeo.setAttribute('position', new THREE.Float32BufferAttribute(fillPos, 3));
+      fillGeo.setIndex(fillIdx);
+      const fill = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({
+        color: 0x475569, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false,
+      }));
+      scenarioGuides.userData.horizon.add(fill);
+
+      // Trayectorias de todo el periodo: brillantes donde hay visibilidad, apagadas donde no
+      const pathFor = (key, onRGB, offRGB) => {
+        const pts = [];
+        const cols = [];
+        report.timeline.forEach(t => {
+          const p = azElToVector3(t[key].az, t[key].el, SKY_R + 0.5);
+          pts.push(p.x, p.y, p.z);
+          cols.push(...(t[key].visible ? onRGB : offRGB));
+        });
+        const geo = new LineGeometry();
+        geo.setPositions(pts);
+        geo.setColors(cols);
+        const line = new Line2(geo, makeLineMaterial({ vertexColors: true, linewidth: 1.6, transparent: true, opacity: 0.75 }));
+        line.computeLineDistances();
+        return line;
+      };
+      scenarioGuides.userData.paths.add(
+        pathFor('sun', [0.98, 0.75, 0.14], [0.35, 0.22, 0.08]),
+        pathFor('earth', [0.22, 0.74, 0.97], [0.30, 0.12, 0.20]),
+      );
+
+      applyLayerToggles();
+      scene.add(scenarioGuides);
+    }
+
+    function applyLayerToggles() {
+      const showPaths = document.getElementById('togglePaths').checked;
+      const showHorizon = document.getElementById('toggleHorizon3D').checked;
+      xrayEnabled = document.getElementById('toggleXray').checked;
+      if (skyGuides) skyGuides.visible = showHorizon;
+      if (scenarioGuides) {
+        scenarioGuides.userData.horizon.visible = showHorizon;
+        scenarioGuides.userData.paths.visible = showPaths;
+      }
+      // CSS2DRenderer no hereda la visibilidad del padre: ocultar las etiquetas una por una
+      if (skyGuides) skyGuides.traverse(o => { if (o.isCSS2DObject) o.visible = showHorizon; });
+      if (sunVec) sunVec.ghost.visible = xrayEnabled;
+      if (earthVec) earthVec.ghost.visible = xrayEnabled;
+    }
+
+    // Coloca la cámara detrás del lander mirando a lo largo del vector (Sol o Tierra)
+    function lookAlongBody(key) {
+      if (!currentReport) return;
+      const body = currentReport.timeline[currentIndex][key];
+      const dirH = azElToVector3(body.az, 0, 1).normalize();
+      const target = azElToVector3(body.az, body.el, 50);
+      target.y = Math.max(target.y, 1.5);
+      camera.position.set(-dirH.x * 26, target.y + 6, -dirH.z * 26);
+      controls.target.copy(target);
     }
 
     function buildLanderModel() {
@@ -388,7 +809,9 @@
         new THREE.SphereGeometry(0.85, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.42),
         new THREE.MeshStandardMaterial({ color: 0xe2e8f0, side: THREE.DoubleSide, metalness: 0.4, roughness: 0.3 })
       );
-      dish.rotation.x = Math.PI;
+      // El casquete esférico abre hacia -Y; rotado -90° en X abre hacia +Z,
+      // que es el eje que lookAt() dirige hacia la Tierra.
+      dish.rotation.x = -Math.PI / 2;
       dishPivot.add(dish);
       landerGroup.add(dishPivot);
 
@@ -466,35 +889,18 @@
     function updateScene3DForStep(step) {
       if (!sunLight) return;
 
-      // Posicionar Sol y luz direccional
-      const sunPos = azElToVector3(step.sun.az, step.sun.el, 260);
+      // Luz direccional solar en la dirección real del Sol
+      const sunPos = azElToVector3(step.sun.az, step.sun.el, SKY_R);
       sunLight.position.copy(sunPos);
-      sunSphere.position.copy(sunPos);
-
       // Si el Sol está por debajo del horizonte geométrico lejano, atenuar luz directa
       sunLight.intensity = step.sun.el > -2.5 ? 3.3 : 0.0;
 
-      // Vector visual hacia el Sol desde el Lander
-      const sunVecEnd = azElToVector3(step.sun.az, step.sun.el, 140);
-      sunVectorLine.geometry.setFromPoints([new THREE.Vector3(0, 2.2, 0), sunVecEnd]);
-      sunVectorLine.material.color.setHex(step.sun.visible ? 0xfbbf24 : 0x78350f);
+      // Vectores Sol / Tierra (tramos visible y bloqueado, punto de impacto, etiquetas)
+      updateBodyVector(sunVec, step.sun);
+      const { bodyPos: earthPos } = updateBodyVector(earthVec, step.earth);
 
-      // Posicionar vector de enlace hacia la Tierra y orientar antena parabólica
-      const earthPos = azElToVector3(step.earth.az, step.earth.el, 150);
-      earthBeacon.position.copy(earthPos);
-      earthVectorLine.geometry.setFromPoints([new THREE.Vector3(0, 3.6, 0), earthPos]);
-
-      if (step.earth.visible) {
-        earthVectorLine.material.color.setHex(0x38bdf8);
-        earthBeacon.material.color.setHex(0x38bdf8);
-      } else {
-        earthVectorLine.material.color.setHex(0xf43f5e);
-        earthBeacon.material.color.setHex(0xf43f5e);
-      }
-
-      if (dishPivot) {
-        dishPivot.lookAt(earthPos);
-      }
+      // La antena parabólica apunta siempre a la Tierra
+      if (dishPivot) dishPivot.lookAt(earthPos);
 
       // Actualizar HUD flotante en el visor 3D
       const shadowHud = document.getElementById('hudShadowState');
@@ -510,6 +916,10 @@
       requestAnimationFrame(animateThreeJS);
       if (controls) controls.update();
       if (renderer && scene && camera) renderer.render(scene, camera);
+      if (labelRenderer && scene && camera) {
+        placeBodyLabels();
+        labelRenderer.render(scene, camera);
+      }
     }
 
     // --- LÓGICA DE DATOS Y CONTROLES UI ---
@@ -577,6 +987,11 @@
         camera.position.set(0, 260, 1);
         controls.target.set(0, 0, 0);
       };
+      document.getElementById('camSunBtn').onclick = () => lookAlongBody('sun');
+      document.getElementById('camEarthBtn').onclick = () => lookAlongBody('earth');
+      ['togglePaths', 'toggleHorizon3D', 'toggleXray'].forEach(id => {
+        document.getElementById(id).addEventListener('change', applyLayerToggles);
+      });
 
       await loadScenario();
     }
@@ -624,6 +1039,7 @@
         if (currentReport.terrain_mesh) {
           updateTerrainMesh3D(currentReport.terrain_mesh);
         }
+        rebuildScenarioGuides(currentReport);
 
         const slider = document.getElementById('timeSlider');
         slider.max = currentReport.timeline.length - 1;
@@ -916,6 +1332,8 @@
         camera.aspect = container.clientWidth / container.clientHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(container.clientWidth, container.clientHeight);
+        if (labelRenderer) labelRenderer.setSize(container.clientWidth, container.clientHeight);
+        lineMaterials.forEach(m => m.resolution.set(container.clientWidth, container.clientHeight));
       }
       if (currentReport) {
         drawHorizonPanorama();
