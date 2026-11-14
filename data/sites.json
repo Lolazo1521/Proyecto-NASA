@@ -1,0 +1,82 @@
+[
+  {
+    "id": "shackleton-rim",
+    "name": "Shackleton Crater Rim (Connecting Ridge)",
+    "program": "NASA Artemis / CLPS",
+    "category": "South Pole",
+    "lat": -89.54,
+    "lon": 129.78,
+    "elevation_km": 1.85,
+    "description": "Cresta con iluminación solar casi continua cerca de depósitos de hielo permanente."
+  },
+  {
+    "id": "malapert-massif",
+    "name": "Malapert Massif",
+    "program": "NASA CLPS",
+    "category": "South Pole",
+    "lat": -86.00,
+    "lon": 0.00,
+    "elevation_km": 4.90,
+    "description": "Macizo elevado con excelente línea de vista directa hacia la Tierra (DTE)."
+  },
+  {
+    "id": "mons-mouton",
+    "name": "Mons Mouton",
+    "program": "NASA VIPER / CLPS",
+    "category": "South Pole",
+    "lat": -84.90,
+    "lon": 31.00,
+    "elevation_km": 5.20,
+    "description": "Meseta elevada con pendientes suaves y ventanas extendidas de luz solar."
+  },
+  {
+    "id": "haworth-rim",
+    "name": "Haworth Crater Rim",
+    "program": "NASA CLPS",
+    "category": "South Pole",
+    "lat": -87.45,
+    "lon": -5.17,
+    "elevation_km": 2.10,
+    "description": "Borde de cráter polar con acceso cercano a regiones permanentemente en sombra (PSR)."
+  },
+  {
+    "id": "apollo-11",
+    "name": "Apollo 11 (Mare Tranquillitatis)",
+    "program": "NASA Apollo",
+    "category": "Historical",
+    "lat": 0.6741,
+    "lon": 23.4730,
+    "elevation_km": -1.90,
+    "description": "Primer alunizaje tripulado; ciclo ecuatorial clásico de ~14.7 días de luz y 14.7 de noche."
+  },
+  {
+    "id": "apollo-15",
+    "name": "Apollo 15 (Hadley-Apennine)",
+    "program": "NASA Apollo",
+    "category": "Historical",
+    "lat": 26.1322,
+    "lon": 3.6339,
+    "elevation_km": -1.75,
+    "description": "Zona rodeada por los Montes Apeninos, ideal para probar bloqueo topográfico local."
+  },
+  {
+    "id": "chandrayaan-3",
+    "name": "Statio Shiv Shakti",
+    "program": "ISRO Chandrayaan-3",
+    "category": "International",
+    "lat": -69.3730,
+    "lon": 32.3190,
+    "elevation_km": 0.45,
+    "description": "Primer alunizaje exitoso en latitudes altas del sur lunar."
+  },
+  {
+    "id": "change-4",
+    "name": "Von Kármán Crater (Cara Oculta)",
+    "program": "CNSA Chang'e 4",
+    "category": "International",
+    "lat": -45.4561,
+    "lon": 177.5885,
+    "elevation_km": -5.92,
+    "description": "Ubicado en la cara oculta: elevación terrestre siempre negativa (requiere satélite relé)."
+  }
+]
