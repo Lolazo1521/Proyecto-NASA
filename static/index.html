@@ -176,7 +176,7 @@
     </div>
 
     <!-- KPIs Operativos (4 Tarjetas Críticas) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div id="kpiGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" data-i18n-title="kpi.sun.tip" title="Altura del Sol sobre el horizonte. En el polo sur casi nunca pasa de 2°.">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only" data-i18n="kpi.sun.eng">Elevación Solar</span><span class="exp-only" data-i18n="kpi.sun.exp">☀️ El Sol ahora</span></span>
@@ -1285,11 +1285,12 @@
 
     function explorerCaptionText(step) {
       const parts = [];
+      // Mismo criterio que las etiquetas del 3D: sobre el horizonte pero no visible = lo tapa el relieve
       if (step.sun.visible) parts.push(t('cap.sunOn'));
-      else if (sunVec?.lastHitKm != null) parts.push(t('cap.sunBlocked', { km: sunVec.lastHitKm.toFixed(1) }));
+      else if (step.sun.el > 0) parts.push(sunVec?.lastHitKm != null ? t('cap.sunBlocked', { km: sunVec.lastHitKm.toFixed(1) }) : t('cap.sunBlockedNoKm'));
       else parts.push(t('cap.sunNight'));
       if (step.earth.visible) parts.push(t('cap.earthOn'));
-      else if (earthVec?.lastHitKm != null) parts.push(t('cap.earthBlocked', { km: earthVec.lastHitKm.toFixed(1) }));
+      else if (step.earth.el > 0) parts.push(earthVec?.lastHitKm != null ? t('cap.earthBlocked', { km: earthVec.lastHitKm.toFixed(1) }) : t('cap.earthBlockedNoKm'));
       else parts.push(t('cap.earthBelow'));
       return parts.join('<br>');
     }
@@ -1648,5 +1649,7 @@
     init();
   </script>
   <script type="module" src="/static/js/phase4_comparator.js"></script>
+  <!-- Bienvenida y recorrido guiado -->
+  <script src="/static/js/guided_tour.js"></script>
 </body>
 </html>

@@ -29,6 +29,9 @@ Pensada para planeadores de misión, docentes y público general, con foco en el
     VIABLE / MARGINAL / NO VIABLE (también en el comparador), tabla horaria, exportar CSV/JSON del
     escenario actual, márgenes en los indicadores y todas las capas técnicas del 3D.
 
+- **Bienvenida y recorrido guiado**: la primera vez explica en dos frases para qué sirve la página y
+  ofrece un recorrido de 10 pasos que ilumina cada sección y explica qué hace. El botón
+  "❓ ¿Cómo se usa?" del encabezado lo repite cuando quieras.
 - **Español / inglés**: botón 🌐 ES | EN en el encabezado. Cambia todos los textos al instante
   (tarjetas, visor 3D, Luna completa, gráficas, consola y comparador) sin recargar y sin perder
   los escenarios fijados ni la posición en la línea de tiempo. Se recuerda la última elección.
@@ -67,11 +70,22 @@ PY/horizon_engine.py        Horizonte 360° por trazado de rayos, visibilidad, e
 data/sites.json             Catálogo de sitios
 cache/                      Efemérides descargadas (JSON)
 static/index.html           Interfaz principal
-static/js/                  Visor 3D: Luna completa, terreno, lander, shader de cráteres, comparador
+static/js/                  Visor 3D: Luna completa, terreno, lander, shader de cráteres, comparador,
+                            traducción (i18n.js) y recorrido guiado (guided_tour.js)
 static/vendor/              three.js 0.160 (MIT) y Tailwind compilado
 prefetch_demo.py            Pre-carga de caché para la demo
 validate_accuracy.py        Pruebas de coherencia física (requieren caché o internet)
 ```
+
+## Datos de la NASA utilizados
+
+| Dato | Fuente | Uso en el proyecto |
+|---|---|---|
+| Efemérides del Sol y la Tierra vistas desde la superficie lunar (acimut y elevación, cada hora) | [JPL Horizons System](https://ssd.jpl.nasa.gov/horizons/), NASA/JPL | Base de todos los cálculos de luz, comunicación directa (DTE), cuentas regresivas y de la iluminación del visor 3D y de la Luna completa |
+| Sitios de alunizaje (Artemis / CLPS, Apollo) | Programas públicos de la NASA | Catálogo de sitios en `data/sites.json` |
+
+Pendiente para la siguiente versión: sustituir el terreno sintético por un DEM real de
+**LOLA** (Lunar Orbiter Laser Altimeter, misión LRO de la NASA), que es el recurso que sugiere el reto.
 
 ## Modelo y supuestos
 
