@@ -7,6 +7,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { applyCraterDetail } from './lunar_shaders.js';
 
 const DEG = Math.PI / 180;
+const t = (key, vars) => (window.I18N ? window.I18N.t(key, vars) : key);
 
 // Marco selenográfico de la escena: +X = (lat 0, lon 0) cara visible, +Y = Polo Norte,
 // -Z = lon +90° E. Coincide con el mapeo UV de THREE.SphereGeometry.
@@ -266,11 +267,11 @@ export class MoonGlobe {
     // Sol (resplandor lejano) y Tierra (esfera fuera de escala)
     this.sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('255,220,120'), blending: THREE.AdditiveBlending, depthWrite: false }));
     this.sunGlow.scale.setScalar(2.2);
-    this.sunLabel = label('☀ Sol', 'globe-label sun');
+    this.sunLabel = label(t('globe.sun'), 'globe-label sun');
     this.sunGlow.add(this.sunLabel);
     this.earth = new THREE.Mesh(new THREE.SphereGeometry(0.1, 48, 24),
       new THREE.MeshStandardMaterial({ map: makeEarthTexture(), roughness: 0.7, emissive: 0x0b1e4a, emissiveIntensity: 0.4 }));
-    this.earthLabel = label('🌍 Tierra <span style="opacity:.6">(no a escala)</span>', 'globe-label earth');
+    this.earthLabel = label(t('globe.earth'), 'globe-label earth');
     this.earthLabel.position.y = 0.13;
     this.earth.add(this.earthLabel);
     this.scene.add(this.sunGlow, this.earth);
@@ -297,7 +298,8 @@ export class MoonGlobe {
     const up = this.basis.up;
     this.site.position.copy(up);
     this.site.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
-    this.siteLabel.element.innerHTML = `📍 ${site.name}<br><span style="opacity:.65">${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°</span>`;
+    this.siteData = site;
+    this.setSiteLabel(site.name);
     this.sunArrow.position.copy(up);
     this.earthArrow.position.copy(up);
 
@@ -312,6 +314,18 @@ export class MoonGlobe {
     this.camera.position.copy(start);
     this.controls.target.set(0, 0, 0);
     this.controls.update();
+  }
+
+  // Nombre del sitio ya traducido (lo decide index.html)
+  setSiteLabel(name) {
+    if (!this.siteData) return;
+    const s = this.siteData;
+    this.siteLabel.element.innerHTML = `📍 ${name}<br><span style="opacity:.65">${s.lat.toFixed(2)}°, ${s.lon.toFixed(2)}°</span>`;
+  }
+
+  refreshLabels() {
+    this.sunLabel.element.innerHTML = t('globe.sun');
+    this.earthLabel.element.innerHTML = t('globe.earth');
   }
 
   update(step) {

@@ -20,13 +20,18 @@ Pensada para planeadores de misión, docentes y público general, con foco en el
 - **Comparador** de hasta 3 escenarios lado a lado, con gráfica de elevación solar (zoom al
   horizonte para sitios polares) y franjas de visibilidad.
 - **Dos perfiles de interfaz** que cambian toda la página (se recuerda la última elección):
-  - **Explorador** (público y docentes): guía "¿Por qué es tan difícil alunizar en el Polo Sur?",
-    indicadores en frases sencillas ("El Sol se esconde en 6 días y 9 h", "La Tierra está detrás de una
-    montaña"), explicación en vivo dentro del visor 3D, menos capas activadas y comparador sin jerga.
+  - **Explorador** (cualquier persona, sin conocimientos técnicos): pasos de uso, 4 ideas explicadas
+    con analogías, tarjeta "Ahora mismo en este lugar" con semáforos de energía y comunicación,
+    respuestas Sí/No, fechas y duraciones en palabras ("24 de noviembre", "unos 20 de 30 días"),
+    visor 3D con explicación en vivo y solo lo esencial, glosario de palabras clave y comparador sin jerga.
   - **Ingeniería** (planeadores): consola de misión con **ventanas de luz y de enlace DTE** (inicio,
     fin, duración, margen mínimo sobre el relieve), **umbrales que deciden el veredicto**
     VIABLE / MARGINAL / NO VIABLE (también en el comparador), tabla horaria, exportar CSV/JSON del
     escenario actual, márgenes en los indicadores y todas las capas técnicas del 3D.
+
+- **Español / inglés**: botón 🌐 ES | EN en el encabezado. Cambia todos los textos al instante
+  (tarjetas, visor 3D, Luna completa, gráficas, consola y comparador) sin recargar y sin perder
+  los escenarios fijados ni la posición en la línea de tiempo. Se recuerda la última elección.
 
 ## Cómo correrlo
 
@@ -103,6 +108,14 @@ Veredicto: sin criterios fallados = VIABLE, uno = MARGINAL, dos o más = NO VIAB
   sitio, con la misma forma (malla en metros, fila 0 = Norte). El resto del sistema no cambia.
 - El radio del DEM es de ~18 km. En el polo, montañas a más de 100 km también definen el horizonte.
 - El lander está a escala ×100 para que se vea en una escena de 36 km.
+
+## Agregar o cambiar textos (traducción)
+
+Todos los textos están en `static/js/i18n.js` como `'clave': ['español', 'inglés']`.
+- En el HTML: `data-i18n="clave"` (texto), `data-i18n-html="clave"` (texto con etiquetas) o
+  `data-i18n-title="clave"` (tooltip).
+- En JavaScript: `I18N.t('clave', { variable: valor })`; en el texto se escribe `{variable}`.
+- Si falta una clave, la consola del navegador muestra `[i18n] falta la clave: …`.
 
 ## Modificar estilos
 

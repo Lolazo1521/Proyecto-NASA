@@ -56,7 +56,7 @@ def run_audit():
     assert abs(dip - expected_dip) < 1e-6
     print(f"[PASS] Horizonte sin refracción atmosférica (h=5km): Depresión = {dip:.4f}°.")
 
-    print("\nRESULTADO: 4/4 pruebas astrofísicas superadas con margen de error < 0.001°.")
+    print("\nRESULTADO: 4/4 pruebas de coherencia física superadas.")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lunar Landing Site Navigator — 3D & Temporal Simulator</title>
+  <!-- Traducción ES/EN: script clásico, debe cargarse antes de los módulos -->
+  <script src="/static/js/i18n.js"></script>
   <!-- Todo local para que la demo funcione sin internet (ver README: cómo regenerar tailwind.css) -->
   <link rel="stylesheet" href="/static/vendor/tailwind.css">
   <!-- Fuentes: opcionales; se cargan sin bloquear la página y si no hay internet se usan las del sistema -->
@@ -85,7 +87,7 @@
       <div class="w-3 h-3 rounded-full bg-sky-400 animate-pulse"></div>
       <div>
         <h1 class="text-lg font-bold tracking-tight text-white">LUNAR LANDING SITE NAVIGATOR</h1>
-        <p class="text-xs text-slate-400">Simulador Topográfico 3D, Sombras Polares y Enlace Directo Tierra (DTE)</p>
+        <p class="text-xs text-slate-400"><span class="eng-only" data-i18n="header.subtitle">Simulador Topográfico 3D, Sombras Polares y Enlace Directo Tierra (DTE)</span><span class="exp-only" data-i18n="header.subtitleExp"></span></p>
       </div>
     </div>
     <div id="statusBadge" class="mono text-xs px-3 py-1 rounded bg-slate-800 text-sky-300 border border-slate-700">
@@ -102,7 +104,7 @@
       
       <!-- Selector de Sitio -->
       <div class="lg:col-span-4">
-        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Sitio de Alunizaje</label>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1"><span class="eng-only" data-i18n="controls.site">Sitio de Alunizaje</span><span class="exp-only" data-i18n="exp.controls.site"></span></label>
         <select id="siteSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
         </select>
       </div>
@@ -110,32 +112,32 @@
       <!-- Coordenadas Personalizadas -->
       <div id="customCoordsBox" class="lg:col-span-4 hidden grid-cols-3 gap-2">
         <div>
-          <label class="block text-[11px] text-slate-400 mb-1">Latitud (°)</label>
+          <label class="block text-[11px] text-slate-400 mb-1" data-i18n="controls.lat">Latitud (°)</label>
           <input id="customLat" type="number" step="0.01" min="-90" max="90" value="-88.50" class="w-full mono bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-sm">
         </div>
         <div>
-          <label class="block text-[11px] text-slate-400 mb-1">Longitud (°)</label>
+          <label class="block text-[11px] text-slate-400 mb-1" data-i18n="controls.lon">Longitud (°)</label>
           <input id="customLon" type="number" step="0.01" min="-180" max="180" value="45.00" class="w-full mono bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-sm">
         </div>
         <div>
-          <label class="block text-[11px] text-slate-400 mb-1">Elev. (km)</label>
+          <label class="block text-[11px] text-slate-400 mb-1" data-i18n="controls.alt">Elev. (km)</label>
           <input id="customAlt" type="number" step="0.1" value="1.5" class="w-full mono bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-sm">
         </div>
       </div>
 
       <!-- Fecha de Inicio -->
       <div class="lg:col-span-3">
-        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Fecha Inicio Misión (UTC)</label>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1"><span class="eng-only" data-i18n="controls.date">Fecha Inicio Misión (UTC)</span><span class="exp-only" data-i18n="exp.controls.date"></span></label>
         <input id="startDateInput" type="date" value="2026-11-15" class="w-full mono bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white">
       </div>
 
       <!-- Saltos por Día Lunar -->
       <div class="lg:col-span-5 flex flex-wrap gap-2">
-        <button id="btnPrevLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">-1 Día Lunar</button>
-        <button id="btnHalfLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+½ Día Lunar</button>
-        <button id="btnNextLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+1 Día Lunar</button>
-        <button id="btnSeason" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">+90d</button>
-        <button id="btnEvaluate" class="ml-auto px-4 py-2 text-xs font-bold uppercase tracking-wider bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg transition">Evaluar</button>
+        <button id="btnPrevLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"><span class="eng-only" data-i18n="controls.prevLunar">-1 Día Lunar</span><span class="exp-only" data-i18n="exp.controls.prev"></span></button>
+        <button id="btnHalfLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"><span class="eng-only" data-i18n="controls.halfLunar">+½ Día Lunar</span><span class="exp-only" data-i18n="exp.controls.half"></span></button>
+        <button id="btnNextLunar" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"><span class="eng-only" data-i18n="controls.nextLunar">+1 Día Lunar</span><span class="exp-only" data-i18n="exp.controls.next"></span></button>
+        <button id="btnSeason" class="px-2.5 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"><span class="eng-only" data-i18n="controls.season">+90d</span><span class="exp-only" data-i18n="exp.controls.season"></span></button>
+        <button id="btnEvaluate" class="ml-auto px-4 py-2 text-xs font-bold uppercase tracking-wider bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg transition"><span class="eng-only" data-i18n="controls.evaluate">Evaluar</span><span class="exp-only" data-i18n="exp.controls.evaluate"></span></button>
       </div>
     </div>
   </section>
@@ -146,7 +148,7 @@
     <!-- Mensaje de error del escenario (p. ej. sin internet y sin caché) -->
     <div id="scenarioError" class="hidden flex items-start gap-3 bg-rose-950/60 border border-rose-500/40 text-rose-200 rounded-xl px-4 py-3 text-sm">
       <span class="text-lg leading-none">⚠</span>
-      <div><div class="font-semibold">No se pudo cargar el escenario</div><div id="scenarioErrorText" class="text-xs text-rose-300/90 mt-0.5"></div></div>
+      <div><div class="font-semibold" data-i18n="err.title">No se pudo cargar el escenario</div><div id="scenarioErrorText" class="text-xs text-rose-300/90 mt-0.5"></div></div>
     </div>
 
     <!-- Site Info Banner -->
@@ -154,7 +156,7 @@
       <div>
         <span id="siteProgramBadge" class="text-[11px] font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mr-2">NASA</span>
         <span id="siteTitle" class="font-semibold text-white">Cargando sitio...</span>
-        <span id="siteCoordsLabel" class="mono text-xs text-slate-400 ml-2"></span>
+        <span id="siteCoordsLabel" class="eng-only mono text-xs text-slate-400 ml-2"></span>
       </div>
       <p id="siteDescription" class="text-xs text-slate-400"></p>
     </div>
@@ -162,23 +164,34 @@
     <!-- Bloque principal del perfil: guía educativa (Explorador) o consola de misión (Ingeniería) -->
     <div id="modeTopHost"></div>
 
+    <!-- Resumen en lenguaje sencillo del instante elegido (solo modo Explorador) -->
+    <div id="explorerNow" class="exp-only bg-slate-900 border border-sky-500/30 rounded-xl p-4">
+      <div class="text-[11px] uppercase tracking-wider font-bold text-sky-300" data-i18n="now.title">Ahora mismo en este lugar</div>
+      <p id="nowHeadline" class="text-base text-white mt-1 leading-snug"></p>
+      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div id="nowEnergy" class="rounded-lg px-3 py-2 bg-slate-950 border border-slate-800 text-slate-300"></div>
+        <div id="nowComms" class="rounded-lg px-3 py-2 bg-slate-950 border border-slate-800 text-slate-300"></div>
+      </div>
+      <p id="nowMonth" class="mt-3 text-xs text-slate-400 leading-relaxed"></p>
+    </div>
+
     <!-- KPIs Operativos (4 Tarjetas Críticas) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" title="Altura del Sol sobre el horizonte. En el polo sur casi nunca pasa de 2°.">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" data-i18n-title="kpi.sun.tip" title="Altura del Sol sobre el horizonte. En el polo sur casi nunca pasa de 2°.">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only">Elevación Solar</span><span class="exp-only">☀️ El Sol ahora</span></span>
-          <span id="sunStatusPill" class="mono text-[11px] px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300">VISIBLE</span>
+          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only" data-i18n="kpi.sun.eng">Elevación Solar</span><span class="exp-only" data-i18n="kpi.sun.exp">☀️ El Sol ahora</span></span>
+          <span class="eng-only"><span id="sunStatusPill" class="mono text-[11px] px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300">VISIBLE</span></span>
         </div>
         <div class="flex items-baseline gap-2">
           <span id="kpiSunEl" class="mono text-2xl font-bold text-white">--°</span>
           <span id="kpiSunMax" class="eng-only mono text-xs text-slate-400">Máx: --°</span>
         </div>
         <div class="eng-only mt-2 text-xs text-slate-400 flex justify-between items-center gap-2">
-          <label class="flex items-center gap-1.5">Paneles
-            <select id="panelModeSelect" title="Tipo de panel solar" class="bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-200">
-              <option value="auto">auto</option>
-              <option value="vertical">verticales</option>
-              <option value="horizontal">horizontales</option>
+          <label class="flex items-center gap-1.5"><span data-i18n="kpi.panels">Paneles</span>
+            <select id="panelModeSelect" data-i18n-title="kpi.panels.tip" title="Tipo de panel solar" class="bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-200">
+              <option value="auto" data-i18n="panel.auto">auto</option>
+              <option value="vertical" data-i18n="panel.vertical">verticales</option>
+              <option value="horizontal" data-i18n="panel.horizontal">horizontales</option>
             </select>
           </label>
           <span id="kpiSolarEff" class="mono font-semibold text-amber-400">--%</span>
@@ -188,44 +201,44 @@
         <p id="kpiSunPlain" class="exp-only mt-2 text-xs text-slate-300 leading-snug"></p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" title="Cuánto falta para que el Sol quede debajo del horizonte o detrás del relieve.">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" data-i18n-title="kpi.sunset.tip" title="Cuánto falta para que el Sol quede debajo del horizonte o detrás del relieve.">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only">Tiempo hasta Sunset</span><span class="exp-only">🌇 ¿Cuándo se pone el Sol?</span></span>
+          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only" data-i18n="kpi.sunset.eng">Tiempo hasta Sunset</span><span class="exp-only" data-i18n="kpi.sunset.exp">🌇 ¿Cuándo se pone el Sol?</span></span>
           <span class="text-amber-400 text-xs">☀</span>
         </div>
         <div id="kpiSunsetCountdown" class="mono text-2xl font-bold text-white">-- h</div>
         <div class="eng-only mt-2 text-xs text-slate-400 flex justify-between">
-          <span>Luz en ventana (30d):</span>
+          <span data-i18n="kpi.sunlitWindow">Luz en ventana (30d):</span>
           <span id="kpiSunTotalPct" class="mono font-semibold text-slate-200">--%</span>
         </div>
         <p id="kpiSunsetPlain" class="exp-only mt-2 text-xs text-slate-300 leading-snug"></p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" title="Comunicación directa con la Tierra (DTE): necesita ver la Tierra sobre el relieve.">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" data-i18n-title="kpi.dte.tip" title="Comunicación directa con la Tierra (DTE): necesita ver la Tierra sobre el relieve.">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only">Enlace Tierra (DTE)</span><span class="exp-only">📡 ¿Hablamos con la Tierra?</span></span>
-          <span id="earthStatusPill" class="mono text-[11px] px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-300">ACTIVO</span>
+          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only" data-i18n="kpi.dte.eng">Enlace Tierra (DTE)</span><span class="exp-only" data-i18n="kpi.dte.exp">📡 ¿Hablamos con la Tierra?</span></span>
+          <span class="eng-only"><span id="earthStatusPill" class="mono text-[11px] px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-300">ACTIVO</span></span>
         </div>
         <div class="flex items-baseline gap-2">
           <span id="kpiEarthEl" class="mono text-2xl font-bold text-white">--°</span>
           <span id="kpiEarthAz" class="eng-only mono text-xs text-slate-400">Az: --°</span>
         </div>
         <div class="eng-only mt-2 text-xs text-slate-400 flex justify-between">
-          <span>Disponibilidad DTE:</span>
+          <span data-i18n="kpi.dteAvail">Disponibilidad DTE:</span>
           <span id="kpiDteTotalPct" class="mono font-semibold text-sky-400">--%</span>
         </div>
         <div id="kpiEarthMargin" class="eng-only mt-1 text-[11px] mono text-slate-400"></div>
         <p id="kpiDtePlain" class="exp-only mt-2 text-xs text-slate-300 leading-snug"></p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" title="Cuánto falta para que la Tierra quede debajo del horizonte o detrás del relieve.">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4" data-i18n-title="kpi.earthset.tip" title="Cuánto falta para que la Tierra quede debajo del horizonte o detrás del relieve.">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only">Tiempo hasta Earthset</span><span class="exp-only">🌍 ¿Cuándo se oculta la Tierra?</span></span>
+          <span class="text-xs font-semibold uppercase text-slate-400"><span class="eng-only" data-i18n="kpi.earthset.eng">Tiempo hasta Earthset</span><span class="exp-only" data-i18n="kpi.earthset.exp">🌍 ¿Cuándo se oculta la Tierra?</span></span>
           <span class="text-sky-400 text-xs">🌍</span>
         </div>
         <div id="kpiEarthsetCountdown" class="mono text-2xl font-bold text-white">-- h</div>
         <div class="eng-only mt-2 text-xs text-slate-400 flex justify-between">
-          <span>Horizonte local (Az Tierra):</span>
+          <span data-i18n="kpi.localHorizon">Horizonte local (Az Tierra):</span>
           <span id="kpiHorizonAtEarth" class="mono font-semibold text-slate-200">--°</span>
         </div>
         <p id="kpiEarthsetPlain" class="exp-only mt-2 text-xs text-slate-300 leading-snug"></p>
@@ -245,12 +258,13 @@
             <button data-speed="50" class="speed-btn px-2 py-1 rounded text-slate-400 hover:text-white">50x</button>
             <button data-speed="200" class="speed-btn px-2 py-1 rounded text-slate-400 hover:text-white">200x</button>
           </div>
-          <span class="text-xs text-slate-400 ml-2">UTC:</span>
+          <span class="text-xs text-slate-400 ml-2"><span class="eng-only">UTC:</span><span class="exp-only" data-i18n="exp.dateLabel"></span></span>
           <span id="currentTimestampLabel" class="mono text-sm font-bold text-white">--</span>
         </div>
         <span id="stepCounterLabel" class="mono text-xs text-slate-400">Hora 0 / 0</span>
       </div>
       <input id="timeSlider" type="range" min="0" max="719" value="0" class="w-full cursor-pointer" />
+      <p class="exp-only mt-2 text-xs text-slate-400" data-i18n="exp.sliderHint"></p>
     </div>
 
     <!-- FASE 3: Visor 3D del Terreno Lunar y Sombras en Tiempo Real -->
@@ -258,61 +272,67 @@
       <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 class="text-sm font-bold text-white flex items-center gap-2">
-            <span>Simulador Topográfico 3D y Sombras en Tiempo Real (WebGL · DEM sintético de demostración)</span>
-            <span class="text-[10px] uppercase px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">Fase 3</span>
+            <span class="eng-only" data-i18n="viewer.title">Simulador Topográfico 3D y Sombras en Tiempo Real (WebGL · DEM sintético de demostración)</span><span class="exp-only" data-i18n="exp.viewer.title"></span>
+            <span class="eng-only text-[10px] uppercase px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30" data-i18n="viewer.phase">Fase 3</span>
           </h2>
-          <p class="eng-only text-xs text-slate-400">Arrastra para rotar • Rueda para zoom • Sombras duras sin dispersión atmosférica y vectores Sol/Tierra</p>
-          <p class="exp-only text-xs text-slate-400">Arrastra para girar y usa la rueda para acercarte. La línea amarilla va al Sol y la azul a la Tierra; si una montaña las tapa, se vuelven rojas y punteadas.</p>
+          <p class="eng-only text-xs text-slate-400" data-i18n="viewer.subEng">Arrastra para rotar • Rueda para zoom • Sombras duras sin dispersión atmosférica y vectores Sol/Tierra</p>
+          <p class="exp-only text-xs text-slate-400" data-i18n="viewer.subExp">Arrastra para girar y usa la rueda para acercarte. La línea amarilla va al Sol y la azul a la Tierra; si una montaña las tapa, se vuelven rojas y punteadas.</p>
         </div>
 
         <!-- Presets de Cámara y Leyenda 3D -->
         <div class="flex flex-wrap items-center gap-2">
           <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg p-0.5 text-xs mr-1">
-            <button id="modeLocalBtn" class="mode-btn px-2.5 py-1 rounded bg-slate-800 text-sky-300 font-bold">Terreno local</button>
-            <button id="modeGlobeBtn" class="mode-btn px-2.5 py-1 rounded text-slate-400 hover:text-white">🌕 Luna completa</button>
+            <button id="modeLocalBtn" class="mode-btn px-2.5 py-1 rounded bg-slate-800 text-sky-300 font-bold"><span class="eng-only" data-i18n="viewer.local">Terreno local</span><span class="exp-only" data-i18n="exp.viewer.local"></span></button>
+            <button id="modeGlobeBtn" class="mode-btn px-2.5 py-1 rounded text-slate-400 hover:text-white"><span class="eng-only" data-i18n="viewer.globe">🌕 Luna completa</span><span class="exp-only" data-i18n="exp.viewer.globe"></span></button>
           </div>
-          <button id="camOrbitBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Vista Orbital</button>
-          <button id="camLanderBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Superficie (Lander)</button>
-          <button id="camTopBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">Cenital (N ↑)</button>
-          <button id="camSunBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-amber-300 rounded-lg">Mirar al Sol</button>
-          <button id="camEarthBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-sky-500/40 text-sky-300 rounded-lg">Mirar a la Tierra</button>
+          <button id="camOrbitBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg"><span class="eng-only" data-i18n="cam.orbit">Vista Orbital</span><span class="exp-only" data-i18n="exp.cam.orbit"></span></button>
+          <button id="camLanderBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg"><span class="eng-only" data-i18n="cam.lander">Superficie (Lander)</span><span class="exp-only" data-i18n="exp.cam.lander"></span></button>
+          <button id="camTopBtn" class="eng-only px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg" data-i18n="cam.top">Cenital (N ↑)</button>
+          <button id="camSunBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-amber-300 rounded-lg"><span class="eng-only" data-i18n="cam.sun">Mirar al Sol</span><span class="exp-only" data-i18n="exp.cam.sun"></span></button>
+          <button id="camEarthBtn" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-sky-500/40 text-sky-300 rounded-lg"><span class="eng-only" data-i18n="cam.earth">Mirar a la Tierra</span><span class="exp-only" data-i18n="exp.cam.earth"></span></button>
         </div>
       </div>
 
       <!-- Leyenda de vectores y capas del visor 3D -->
       <div class="flex flex-wrap items-center justify-between gap-3 mb-2 text-[11px]">
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-400">
-          <span class="flex items-center gap-1.5"><span class="w-4 h-[3px] rounded bg-amber-400 inline-block"></span><span class="text-amber-300">Vector Sol</span></span>
-          <span class="flex items-center gap-1.5"><span class="w-4 h-[3px] rounded bg-sky-400 inline-block"></span><span class="text-sky-300">Vector Tierra (DTE)</span></span>
-          <span class="flex items-center gap-1.5"><span class="w-4 inline-block border-t-2 border-dashed border-rose-400"></span>Tramo bloqueado por relieve</span>
-          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block ring-2 ring-rose-500/30"></span>Punto de bloqueo</span>
-          <span class="flex items-center gap-1.5"><span class="w-4 h-px bg-slate-300 inline-block"></span>Horizonte topográfico</span>
-          <span class="flex items-center gap-1.5"><span class="w-4 inline-block border-t border-dashed border-slate-500"></span>Horizonte geométrico 0°</span>
+        <div class="exp-only flex flex-wrap items-center gap-x-5 gap-y-1 text-slate-300 text-xs">
+          <span class="flex items-center gap-1.5"><span class="w-5 h-[3px] rounded bg-amber-400 inline-block"></span><span class="text-amber-300" data-i18n="exp.leg.sun"></span></span>
+          <span class="flex items-center gap-1.5"><span class="w-5 h-[3px] rounded bg-sky-400 inline-block"></span><span class="text-sky-300" data-i18n="exp.leg.earth"></span></span>
+          <span class="flex items-center gap-1.5"><span class="w-5 inline-block border-t-2 border-dashed border-rose-400"></span><span data-i18n="exp.leg.blocked"></span></span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block ring-2 ring-rose-500/30"></span><span data-i18n="exp.leg.hit"></span></span>
         </div>
-        <div class="flex items-center gap-3 text-slate-300">
-          <label class="flex items-center gap-1.5 cursor-pointer"><input id="togglePaths" type="checkbox" checked class="accent-sky-400"> Trayectorias del periodo</label>
-          <label class="flex items-center gap-1.5 cursor-pointer"><input id="toggleHorizon3D" type="checkbox" checked class="accent-sky-400"> Domo y horizonte</label>
-          <label class="flex items-center gap-1.5 cursor-pointer"><input id="toggleXray" type="checkbox" checked class="accent-sky-400"> Rayos X (ver tras relieve)</label>
+        <div class="eng-only flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-400">
+          <span class="flex items-center gap-1.5"><span class="w-4 h-[3px] rounded bg-amber-400 inline-block"></span><span class="text-amber-300" data-i18n="leg.sun">Vector Sol</span></span>
+          <span class="flex items-center gap-1.5"><span class="w-4 h-[3px] rounded bg-sky-400 inline-block"></span><span class="text-sky-300" data-i18n="leg.earth">Vector Tierra (DTE)</span></span>
+          <span class="flex items-center gap-1.5"><span class="w-4 inline-block border-t-2 border-dashed border-rose-400"></span><span data-i18n="leg.blocked">Tramo bloqueado por relieve</span></span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block ring-2 ring-rose-500/30"></span><span data-i18n="leg.hit">Punto de bloqueo</span></span>
+          <span class="flex items-center gap-1.5"><span class="w-4 h-px bg-slate-300 inline-block"></span><span data-i18n="leg.topoHorizon">Horizonte topográfico</span></span>
+          <span class="flex items-center gap-1.5"><span class="w-4 inline-block border-t border-dashed border-slate-500"></span><span data-i18n="leg.geoHorizon">Horizonte geométrico 0°</span></span>
+        </div>
+        <div class="eng-only flex items-center gap-3 text-slate-300">
+          <label class="flex items-center gap-1.5 cursor-pointer"><input id="togglePaths" type="checkbox" checked class="accent-sky-400"> <span data-i18n="layer.paths">Trayectorias del periodo</span></label>
+          <label class="flex items-center gap-1.5 cursor-pointer"><input id="toggleHorizon3D" type="checkbox" checked class="accent-sky-400"> <span data-i18n="layer.dome">Domo y horizonte</span></label>
+          <label class="flex items-center gap-1.5 cursor-pointer"><input id="toggleXray" type="checkbox" checked class="accent-sky-400"> <span data-i18n="layer.xray">Rayos X (ver tras relieve)</span></label>
         </div>
       </div>
 
       <div id="threeContainer" class="relative w-full h-[440px] bg-black rounded-lg border border-slate-800 overflow-hidden">
         <!-- Etiquetas flotantes en el canvas 3D -->
-        <div class="absolute top-3 left-3 pointer-events-none bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-[11px] mono space-y-1">
+        <div class="eng-only absolute top-3 left-3 pointer-events-none bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-[11px] mono space-y-1">
           <div class="text-slate-400"><span id="hudSceneLabel">ESCENA LOCAL</span>: <span id="hudSceneValue" class="text-white">disco Ø 36 km · lander ×100</span></div>
-          <div class="text-slate-400">ESTADO SOMBRA LANDER: <span id="hudShadowState" class="font-bold text-amber-300">--</span></div>
-          <div class="text-slate-400">LÍNEA DE VISTA DTE: <span id="hudDteState" class="font-bold text-sky-300">--</span></div>
+          <div class="text-slate-400"><span data-i18n="hud.shadow">ESTADO SOMBRA LANDER:</span> <span id="hudShadowState" class="font-bold text-amber-300">--</span></div>
+          <div class="text-slate-400"><span data-i18n="hud.dte">LÍNEA DE VISTA DTE:</span> <span id="hudDteState" class="font-bold text-sky-300">--</span></div>
           <div id="hudSunNums" class="eng-only text-amber-200/80"></div>
           <div id="hudEarthNums" class="eng-only text-sky-200/80"></div>
         </div>
         <!-- Explicación en lenguaje sencillo de lo que se ve (solo modo Explorador) -->
         <div id="explorerCaption" class="exp-only absolute top-3 right-3 max-w-[340px] pointer-events-none bg-slate-950/85 border border-sky-500/30 rounded-lg px-3 py-2 text-[12px] text-slate-200 leading-snug"></div>
-        <div id="hudAxes" class="absolute bottom-3 right-3 pointer-events-none bg-slate-950/75 px-2.5 py-1 rounded text-[11px] mono text-slate-400">
+        <div id="hudAxes" class="eng-only absolute bottom-3 right-3 pointer-events-none bg-slate-950/75 px-2.5 py-1 rounded text-[11px] mono text-slate-400">
           Norte (-Z) | Este (+X) | Curvatura Lunar Activa
         </div>
         <!-- Recuadro con la Luna completa (se dibuja con scissor en el mismo canvas WebGL) -->
-        <button id="globeInset" title="Ver la Luna completa" class="absolute left-3 bottom-3 w-[190px] h-[190px] rounded-lg border border-slate-600/80 hover:border-sky-400 transition text-left">
-          <span class="absolute top-1.5 left-2 text-[10px] mono text-slate-300 bg-slate-950/70 px-1.5 py-0.5 rounded">LUNA · clic para ampliar</span>
+        <button id="globeInset" data-i18n-title="inset.tip" title="Ver la Luna completa" class="absolute left-3 bottom-3 w-[190px] h-[190px] rounded-lg border border-slate-600/80 hover:border-sky-400 transition text-left">
+          <span class="absolute top-1.5 left-2 text-[10px] mono text-slate-300 bg-slate-950/70 px-1.5 py-0.5 rounded" data-i18n="inset.label">LUNA · clic para ampliar</span>
         </button>
       </div>
     </div>
@@ -322,13 +342,13 @@
       <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
         <div class="flex items-center justify-between mb-3">
           <div>
-            <h2 class="text-sm font-bold text-white">Perfil Panorámico del Horizonte 360°</h2>
-            <p class="eng-only text-xs text-slate-400">Silueta topográfica exacta calculada desde el punto del Lander</p>
-            <p class="exp-only text-xs text-slate-400">Lo que verías girando 360° desde el lander: lo gris son montañas. Si el Sol o la Tierra quedan debajo de la silueta, están tapados.</p>
+            <h2 class="text-sm font-bold text-white" ><span class="eng-only" data-i18n="pano.title">Perfil Panorámico del Horizonte 360°</span><span class="exp-only" data-i18n="exp.pano.title"></span></h2>
+            <p class="eng-only text-xs text-slate-400" data-i18n="pano.subEng">Silueta topográfica exacta calculada desde el punto del Lander</p>
+            <p class="exp-only text-xs text-slate-400" data-i18n="pano.subExp">Lo que verías girando 360° desde el lander: lo gris son montañas. Si el Sol o la Tierra quedan debajo de la silueta, están tapados.</p>
           </div>
           <div class="flex items-center gap-3 text-xs">
-            <span class="flex items-center gap-1 text-amber-400"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Sol</span>
-            <span class="flex items-center gap-1 text-sky-400"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> Tierra</span>
+            <span class="flex items-center gap-1 text-amber-400"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> <span data-i18n="body.sun">Sol</span></span>
+            <span class="flex items-center gap-1 text-sky-400"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> <span data-i18n="body.earth">Tierra</span></span>
           </div>
         </div>
         <div class="relative w-full h-72 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
@@ -336,11 +356,15 @@
         </div>
       </div>
 
-      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
+      <div class="exp-only lg:col-span-4 bg-slate-900 border border-emerald-500/25 rounded-xl p-4">
+        <h2 class="text-sm font-bold text-white mb-3" data-i18n="gloss.title"></h2>
+        <ul class="space-y-2 text-xs text-slate-300 leading-relaxed" data-i18n-html="gloss.items"></ul>
+      </div>
+      <div class="eng-only lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
         <div class="mb-3">
-          <h2 class="text-sm font-bold text-white">Domo Celeste Polar (Sky-Dome)</h2>
-          <p class="eng-only text-xs text-slate-400">Proyección cenital 360° y libración terrestre</p>
-          <p class="exp-only text-xs text-slate-400">El cielo visto desde arriba: el centro está justo encima del lander y el borde es el horizonte.</p>
+          <h2 class="text-sm font-bold text-white" data-i18n="dome.title">Domo Celeste Polar (Sky-Dome)</h2>
+          <p class="eng-only text-xs text-slate-400" data-i18n="dome.subEng">Proyección cenital 360° y libración terrestre</p>
+          <p class="exp-only text-xs text-slate-400" data-i18n="dome.subExp">El cielo visto desde arriba: el centro está justo encima del lander y el borde es el horizonte.</p>
         </div>
         <div class="relative w-full h-72 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden">
           <canvas id="skyDomeCanvas" class="w-full h-full block"></canvas>
@@ -363,8 +387,23 @@
     import { buildLocalTerrain, disposeTerrain } from '/static/js/lunar_surface.js';
     import { MoonGlobe } from '/static/js/moon_globe.js';
 
+    // Traducción (ver static/js/i18n.js): t('clave', {vars})
+    const t = (key, vars) => window.I18N.t(key, vars);
+    const fmtDuration = (h) => window.I18N.fmtDuration(h);
+
     let currentReport = null;
     let currentIndex = 0;
+    let badgeState = 'init';    // para volver a pintar la insignia de estado al cambiar de idioma
+
+    // En Explorador algunas etiquetas tienen versión sencilla ('badge.readyExp', etc.)
+    const explorerMode = () => document.body.dataset.mode !== 'engineering';
+    function badgeText() {
+      const exp = `badge.${badgeState}Exp`;
+      return explorerMode() && window.I18N.has(exp) ? t(exp) : t('badge.' + badgeState);
+    }
+    function playLabel(playing) {
+      return t(playing ? 'play.pause' : (explorerMode() ? 'exp.play' : 'play.start'));
+    }
     let playRafId = null;
     let lastFrameTime = 0;
     let simSpeedHoursPerSec = 4; // Base 1x = 4 horas simuladas por segundo real
@@ -476,11 +515,11 @@
 
       // Vectores 3D hacia Sol y Tierra
       sunVec = createBodyVector({
-        kind: 'sun', name: 'Sol', icon: '☀',
+        kind: 'sun', nameKey: 'body.sun', icon: '☀',
         color: 0xfbbf24, dimColor: 0x92400e, markerRadius: 7, glowColor: '255, 214, 102',
       });
       earthVec = createBodyVector({
-        kind: 'earth', name: 'Tierra', icon: '🌍',
+        kind: 'earth', nameKey: 'body.earth', icon: '🌍',
         color: 0x38bdf8, dimColor: 0x1e3a8a, markerRadius: 5, glowColor: '96, 200, 255',
       });
 
@@ -581,9 +620,12 @@
       }
 
       // Cardinales sobre el horizonte geométrico
-      [['N', 0], ['E', 90], ['S', 180], ['O', 270]].forEach(([txt, az]) => {
-        const lbl = makeLabel('cardinal-label' + (txt === 'N' ? ' north' : ''));
-        lbl.element.textContent = txt;
+      group.userData.cardinals = [];
+      [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([dir, az]) => {
+        const lbl = makeLabel('cardinal-label' + (dir === 'N' ? ' north' : ''));
+        lbl.element.textContent = t('dir.' + dir);
+        lbl.userData.dirKey = 'dir.' + dir;
+        group.userData.cardinals.push(lbl);
         lbl.position.copy(azElToVector3(az, 0, SKY_R + 8));
         group.add(lbl);
       });
@@ -591,8 +633,8 @@
     }
 
     // ---------- Vector a un cuerpo celeste (Sol o Tierra) ----------
-    function createBodyVector({ kind, name, icon, color, dimColor, markerRadius, glowColor }) {
-      const v = { kind, name, icon, color, dimColor, markerRadius };
+    function createBodyVector({ kind, nameKey, icon, color, dimColor, markerRadius, glowColor }) {
+      const v = { kind, nameKey, icon, color, dimColor, markerRadius };
       const p0 = ANTENNA_POS.clone();
       const p1 = new THREE.Vector3(0, SKY_R, 0);
 
@@ -717,26 +759,27 @@
         const horizKm = Math.hypot(hit.point.x, hit.point.z) * 0.1;
         const reliefM = hit.point.y * 100;
         v.hitLabel.element.textContent = explorer
-          ? `⛰️ montaña a ${horizKm.toFixed(1)} km tapa ${v.kind === 'sun' ? 'el Sol' : 'la Tierra'}`
-          : `${v.icon} bloqueo a ${horizKm.toFixed(1)} km · relieve ${fmtSigned(reliefM, 0)} m`;
+          ? t(v.kind === 'sun' ? 'hit.exp.sun' : 'hit.exp.earth', { km: horizKm.toFixed(1) })
+          : t('hit.eng', { icon: v.icon, km: horizKm.toFixed(1), m: fmtSigned(reliefM, 0) });
       }
 
       // Etiqueta del cuerpo
+      const name = t(v.nameKey);
       const status = body.visible
-        ? (v.kind === 'sun' ? 'ILUMINA' : 'DTE OK')
-        : (body.el < 0 && !hit ? 'BAJO HORIZONTE' : 'BLOQUEADO');
+        ? t(v.kind === 'sun' ? 'vec.statusSunOn' : 'vec.statusEarthOn')
+        : t(body.el < 0 && !hit ? 'vec.statusBelow' : 'vec.statusBlocked');
       v.label.element.className = `vec-label ${v.kind}${body.visible ? '' : ' blocked'}`;
       if (explorer) {
         const plain = body.visible
-          ? (v.kind === 'sun' ? 'visible: hay luz' : 'visible: hay señal')
-          : (body.el < 0 && !hit ? 'bajo el horizonte' : 'tapado por una montaña');
-        v.label.element.innerHTML = `${v.icon} <b>${v.name}</b> · ${plain}<br>` +
-          `<span class="sub">a ${body.el.toFixed(1)}° sobre el horizonte</span>`;
+          ? t(v.kind === 'sun' ? 'vec.plainSunOn' : 'vec.plainEarthOn')
+          : t(body.el < 0 && !hit ? 'vec.plainBelow' : 'vec.plainBlocked');
+        v.label.element.innerHTML = `${v.icon} <b>${name}</b> · ${plain}<br>` +
+          `<span class="sub">${t('vec.above', { el: body.el.toFixed(1) })}</span>`;
       } else {
         v.label.element.innerHTML =
-          `${v.icon} <b>${v.name}</b> · ${status}<br>` +
-          `El ${fmtSigned(body.el)}° · Az ${body.az.toFixed(1)}°<br>` +
-          `<span class="sub">Margen sobre relieve: ${fmtSigned(margin)}°</span>`;
+          `${v.icon} <b>${name}</b> · ${status}<br>` +
+          `${t('vec.elaz', { el: fmtSigned(body.el), az: body.az.toFixed(1) })}<br>` +
+          `<span class="sub">${t('vec.margin', { m: fmtSigned(margin) })}</span>`;
       }
 
       return { dir, bodyPos };
@@ -917,11 +960,11 @@
 
       // Actualizar HUD flotante en el visor 3D
       const shadowHud = document.getElementById('hudShadowState');
-      shadowHud.textContent = step.sun.visible ? 'ILUMINADO (SOL DIRECTO)' : 'EN SOMBRA TOPOGRÁFICA';
+      shadowHud.textContent = t(step.sun.visible ? 'hud.sunlit' : 'hud.shadowed');
       shadowHud.className = step.sun.visible ? 'font-bold text-amber-300' : 'font-bold text-slate-400';
 
       const dteHud = document.getElementById('hudDteState');
-      dteHud.textContent = step.earth.visible ? 'ACTIVO (LÍNEA DESPEJADA)' : 'BLOQUEADO POR RELIEVE';
+      dteHud.textContent = t(step.earth.visible ? 'hud.dteOn' : 'hud.dteOff');
       dteHud.className = step.earth.visible ? 'font-bold text-sky-300' : 'font-bold text-rose-400';
     }
 
@@ -956,35 +999,61 @@
       globe.setActive(isGlobe);
       labelRenderer.domElement.style.display = isGlobe ? 'none' : '';
       document.getElementById('globeInset').style.display = isGlobe ? 'none' : '';
-      document.getElementById('hudAxes').textContent = isGlobe
-        ? 'Arrastra para girar la Luna • Polo Sur abajo • Línea azul = 80° S'
-        : 'Norte (-Z) | Este (+X) | Curvatura Lunar Activa';
-      document.getElementById('hudSceneLabel').textContent = isGlobe ? 'VISTA GLOBAL' : 'ESCENA LOCAL';
-      document.getElementById('hudSceneValue').textContent = isGlobe
-        ? 'Luna R = 1737.4 km · luz solar del instante'
-        : 'disco Ø 36 km · lander ×100';
+      document.getElementById('hudAxes').textContent = t(isGlobe ? 'hud.axesGlobe' : 'hud.axesLocal');
+      document.getElementById('hudSceneLabel').textContent = t(isGlobe ? 'hud.global' : 'hud.local');
+      document.getElementById('hudSceneValue').textContent = t(isGlobe ? 'hud.globalValue' : 'hud.localValue');
       document.getElementById('modeLocalBtn').className = 'mode-btn px-2.5 py-1 rounded ' + (isGlobe ? 'text-slate-400 hover:text-white' : 'bg-slate-800 text-sky-300 font-bold');
       document.getElementById('modeGlobeBtn').className = 'mode-btn px-2.5 py-1 rounded ' + (isGlobe ? 'bg-slate-800 text-sky-300 font-bold' : 'text-slate-400 hover:text-white');
     }
 
     // --- LÓGICA DE DATOS Y CONTROLES UI ---
+    let siteCatalog = [];
+
+    function siteOptionLabel(s) {
+      const cat = window.I18N.has(`cat.${s.category}`) ? t(`cat.${s.category}`) : s.category;
+      return explorerMode()
+        ? `[${cat}] ${siteDisplayName(s)}`
+        : `[${cat}] ${siteDisplayName(s)} (${s.lat.toFixed(1)}°, ${s.lon.toFixed(1)}°)`;
+    }
+
+    // Vuelve a pintar todos los textos que genera este script (sin perder el estado)
+    function refreshLanguage() {
+      const select = document.getElementById('siteSelect');
+      siteCatalog.forEach(s => {
+        const opt = select.querySelector(`option[value="${s.id}"]`);
+        if (opt) opt.textContent = siteOptionLabel(s);
+      });
+      document.getElementById('statusBadge').textContent = badgeText();
+      document.getElementById('playBtn').textContent = playLabel(!!playRafId);
+      if (controls && globe) setViewMode(viewMode);
+      skyGuides?.userData.cardinals?.forEach(lbl => { lbl.element.textContent = t(lbl.userData.dirKey); });
+      globe?.refreshLabels();
+      renderSiteInfo();
+      renderError();
+      if (currentReport) onSliderChange(currentIndex);
+    }
+    window.addEventListener('lunar:langchange', refreshLanguage);
+
     async function init() {
       initThreeJS();
+      refreshLanguage();
 
       const res = await fetch('/api/sites');
       const sites = await res.json();
+      siteCatalog = sites;
       const select = document.getElementById('siteSelect');
 
       sites.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.id;
-        opt.textContent = `[${s.category}] ${s.name} (${s.lat.toFixed(1)}°, ${s.lon.toFixed(1)}°)`;
+        opt.textContent = siteOptionLabel(s);
         select.appendChild(opt);
       });
 
       const customOpt = document.createElement('option');
       customOpt.value = 'custom';
-      customOpt.textContent = '★ Ingresar Coordenadas Personalizadas...';
+      customOpt.textContent = t('controls.customOption');
+      customOpt.dataset.i18n = 'controls.customOption';
       select.appendChild(customOpt);
 
       select.addEventListener('change', () => {
@@ -1056,10 +1125,44 @@
       loadScenario();
     }
 
+    let errorState = null;      // { key, vars } del último error, para retraducirlo
+
+    function siteDisplayName(site) {
+      if (site.id === 'custom') return t('site.custom.name', { lat: site.lat.toFixed(2), lon: site.lon.toFixed(2) });
+      return window.I18N.has(`site.${site.id}.name`) ? t(`site.${site.id}.name`) : site.name;
+    }
+
+    function siteDisplayDesc(site) {
+      if (site.id === 'custom') return t('site.custom.desc');
+      return window.I18N.has(`site.${site.id}.desc`) ? t(`site.${site.id}.desc`) : site.description;
+    }
+
+    function renderSiteInfo() {
+      if (!currentReport) return;
+      const site = currentReport.site;
+      document.getElementById('siteProgramBadge').textContent = site.program;
+      document.getElementById('siteTitle').textContent = siteDisplayName(site);
+      globe?.setSiteLabel(siteDisplayName(site));
+      document.getElementById('siteCoordsLabel').textContent =
+        t('site.coords', { lat: site.lat.toFixed(3), lon: site.lon.toFixed(3), alt: site.elevation_km });
+      document.getElementById('siteDescription').textContent = siteDisplayDesc(site);
+      document.getElementById('kpiPanelNote').textContent =
+        t(currentReport.summary.panel_mode === 'vertical' ? 'kpi.panelNote.vertical' : 'kpi.panelNote.horizontal');
+      document.getElementById('kpiSunMax').textContent = t('kpi.max', { v: currentReport.summary.max_solar_elevation_deg.toFixed(1) });
+    }
+
+    function renderError() {
+      const box = document.getElementById('scenarioError');
+      if (!errorState) { box.classList.add('hidden'); return; }
+      document.getElementById('scenarioErrorText').textContent = t(errorState.key, errorState.vars);
+      box.classList.remove('hidden');
+    }
+
     async function loadScenario() {
       stopPlay();
       const badge = document.getElementById('statusBadge');
-      badge.textContent = 'CONSULTANDO JPL HORIZONS...';
+      badgeState = 'loading';
+      badge.textContent = badgeText();
       badge.className = 'mono text-xs px-3 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40';
 
       const siteId = document.getElementById('siteSelect').value;
@@ -1078,25 +1181,23 @@
       try {
         const res = await fetch(`/api/evaluate?${params.toString()}`);
         if (!res.ok) {
-          let detail = `Error ${res.status}`;
-          try { detail = (await res.json()).detail || detail; } catch (_) { /* respuesta no JSON */ }
-          throw new Error(detail);
+          // El servidor responde en español; aquí se traduce según el código de estado
+          const opt = document.getElementById('siteSelect').selectedOptions[0];
+          const siteLabel = siteId === 'custom'
+            ? `${params.get('lat')}°, ${params.get('lon')}°`
+            : (opt ? opt.textContent.replace(/^\[[^\]]*\]\s*/, '').replace(/\s*\([^()]*°[^()]*\)$/, '') : siteId);
+          const err = new Error('http');
+          err.i18n = res.status === 503 ? { key: 'err.offline', vars: { site: siteLabel, date: startDate } }
+            : res.status === 400 ? { key: 'err.badCoords' }
+            : res.status === 502 ? { key: 'err.horizons' }
+            : { key: 'err.generic', vars: { code: res.status } };
+          throw err;
         }
         currentReport = await res.json();
+        errorState = null;
         document.getElementById('scenarioError').classList.add('hidden');
 
-        const panelMode = currentReport.summary.panel_mode;
-        document.getElementById('kpiPanelNote').textContent = panelMode === 'vertical'
-          ? 'Verticales siguiendo el acimut del Sol · eficiencia = cos(elevación)'
-          : 'Horizontales · eficiencia = sen(elevación)';
-
-        document.getElementById('siteProgramBadge').textContent = currentReport.site.program;
-        document.getElementById('siteTitle').textContent = currentReport.site.name;
-        document.getElementById('siteCoordsLabel').textContent =
-          `Lat: ${currentReport.site.lat.toFixed(3)}° | Lon: ${currentReport.site.lon.toFixed(3)}° | Elev: ${currentReport.site.elevation_km} km`;
-        document.getElementById('siteDescription').textContent = currentReport.site.description;
-
-        document.getElementById('kpiSunMax').textContent = `Máx: ${currentReport.summary.max_solar_elevation_deg.toFixed(1)}°`;
+        renderSiteInfo();
         document.getElementById('kpiSunTotalPct').textContent = `${currentReport.summary.sunlight_availability_pct}% (${currentReport.summary.sunlit_hours}h)`;
         document.getElementById('kpiDteTotalPct').textContent = `${currentReport.summary.dte_availability_pct}% (${currentReport.summary.dte_comm_hours}h)`;
 
@@ -1106,6 +1207,7 @@
         }
         rebuildScenarioGuides(currentReport);
         globe.setSite(currentReport.site);
+        globe.setSiteLabel(siteDisplayName(currentReport.site));
 
         const slider = document.getElementById('timeSlider');
         slider.max = currentReport.timeline.length - 1;
@@ -1117,30 +1219,21 @@
         window.lunarReport = currentReport;
         window.dispatchEvent(new CustomEvent('lunar:report', { detail: currentReport }));
 
-        badge.textContent = 'ESCENA 3D Y EFEMÉRIDES LISTAS';
+        badgeState = 'ready';
+        badge.textContent = badgeText();
         badge.className = 'mono text-xs px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
       } catch (err) {
         console.error(err);
-        const box = document.getElementById('scenarioError');
-        document.getElementById('scenarioErrorText').textContent = err.message === 'Failed to fetch'
-          ? 'No hay conexión con el servidor local (¿está corriendo api.py?).'
-          : err.message;
-        box.classList.remove('hidden');
-        badge.textContent = currentReport ? 'SIN DATOS · MOSTRANDO ESCENARIO ANTERIOR' : 'SIN DATOS';
+        errorState = err.i18n || { key: 'err.server' };
+        renderError();
+        badgeState = currentReport ? 'noDataPrev' : 'noData';
+        badge.textContent = badgeText();
         badge.className = 'mono text-xs px-3 py-1 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40';
       }
     }
 
     // ---------- Perfil de interfaz (Explorador / Ingeniería) ----------
     const isExplorer = () => document.body.dataset.mode !== 'engineering';
-
-    // 153 → "6 días y 9 h"; 5.0 → "5 h"
-    function fmtDuration(hours) {
-      const h = Math.round(hours);
-      if (h < 24) return `${h} h`;
-      const d = Math.floor(h / 24), r = h % 24;
-      return r ? `${d} ${d === 1 ? 'día' : 'días'} y ${r} h` : `${d} ${d === 1 ? 'día' : 'días'}`;
-    }
 
     // Horas hasta que el cuerpo vuelva a ser visible desde el índice i (null si no ocurre en el periodo)
     function hoursUntilVisible(key, i) {
@@ -1154,59 +1247,79 @@
       if (s.visible) {
         const eff = s.solar_power_efficiency_pct.toFixed(0);
         return s.el < 5
-          ? `El Sol está a solo <b>${s.el.toFixed(1)}°</b> sobre el horizonte: rasante, como un atardecer que dura días. Los paneles dan <b>${eff}%</b> de su máximo.`
-          : `El Sol está a <b>${s.el.toFixed(0)}°</b> de altura. Los paneles dan <b>${eff}%</b> de su máximo.`;
+          ? t('plain.sun.low', { el: s.el.toFixed(1), eff })
+          : t('plain.sun.high', { el: s.el.toFixed(0), eff });
       }
-      if (s.el > 0) return `⛰️ El Sol está en el cielo, pero <b>una montaña lo tapa</b>: el lander está en sombra y sin energía solar.`;
-      return `🌑 <b>Es de noche</b>: el Sol está debajo del horizonte. El lander vive de sus baterías.`;
+      return t(s.el > 0 ? 'plain.sun.blocked' : 'plain.sun.night');
     }
 
     function plainSunset(step) {
-      const pct = currentReport.summary.sunlight_availability_pct.toFixed(0);
       let first;
       if (step.sun.visible) {
-        first = step.hours_to_sunset === null
-          ? 'El Sol <b>no se pone</b> en lo que resta del periodo.'
-          : `El Sol se esconde en <b>${fmtDuration(step.hours_to_sunset)}</b>.`;
+        first = step.hours_to_sunset === null ? t('plain.sunset.never') : t('plain.sunset.in', { d: fmtDuration(step.hours_to_sunset) });
       } else {
         const back = hoursUntilVisible('sun', currentIndex);
-        first = back === null ? 'El Sol <b>no vuelve a salir</b> en este periodo.' : `El Sol vuelve a salir en <b>${fmtDuration(back)}</b>.`;
+        first = back === null ? t('plain.sunrise.never') : t('plain.sunrise.in', { d: fmtDuration(back) });
       }
-      return `${first} En este mes hay luz el ${pct}% del tiempo.`;
+      return `${first} ${t('plain.sunPct', { days: Math.round(currentReport.summary.sunlight_availability_pct * 0.3) })}`;
     }
 
     function plainDte(step) {
       const e = step.earth;
-      const neverUp = currentReport.timeline.every(t => t.earth.el < 0);
-      if (e.visible) return `La Tierra se ve en el cielo (a ${e.el.toFixed(1)}°): <b>el lander puede hablar directo con nosotros</b>.`;
-      if (neverUp) return `🌑 Desde este sitio <b>la Tierra nunca sale</b> (cara oculta): se necesita un satélite relé.`;
-      if (e.el > 0) return `⛰️ La Tierra está <b>detrás de una montaña</b>: sin contacto directo por ahora.`;
-      return `🌍 La Tierra está <b>debajo del horizonte</b>: sin contacto directo por ahora.`;
+      const neverUp = currentReport.timeline.every(x => x.earth.el < 0);
+      if (e.visible) return t('plain.dte.on', { el: e.el.toFixed(1) });
+      if (neverUp) return t('plain.dte.never');
+      return t(e.el > 0 ? 'plain.dte.blocked' : 'plain.dte.below');
     }
 
     function plainEarthset(step) {
-      const pct = currentReport.summary.dte_availability_pct.toFixed(0);
       let first;
       if (step.earth.visible) {
-        first = step.hours_to_earthset === null
-          ? 'La Tierra <b>no se oculta</b> en lo que resta del periodo.'
-          : `La Tierra se oculta en <b>${fmtDuration(step.hours_to_earthset)}</b>.`;
+        first = step.hours_to_earthset === null ? t('plain.earthset.never') : t('plain.earthset.in', { d: fmtDuration(step.hours_to_earthset) });
       } else {
         const back = hoursUntilVisible('earth', currentIndex);
-        first = back === null ? 'La Tierra <b>no vuelve a verse</b> en este periodo.' : `La Tierra vuelve a verse en <b>${fmtDuration(back)}</b>.`;
+        first = back === null ? t('plain.earthrise.never') : t('plain.earthrise.in', { d: fmtDuration(back) });
       }
-      return `${first} Hay contacto directo el ${pct}% del mes.`;
+      return `${first} ${t('plain.dtePct', { days: Math.round(currentReport.summary.dte_availability_pct * 0.3) })}`;
     }
 
     function explorerCaptionText(step) {
       const parts = [];
-      if (step.sun.visible) parts.push('☀️ La <b class="text-amber-300">línea amarilla</b> llega libre al Sol: el lander tiene luz.');
-      else if (sunVec?.lastHitKm != null) parts.push(`⛰️ Una montaña a <b>${sunVec.lastHitKm.toFixed(1)} km</b> tapa el Sol (tramo <b class="text-rose-300">rojo punteado</b>): por eso hay sombra.`);
-      else parts.push('🌑 El Sol está bajo el horizonte: es de noche en el sitio.');
-      if (step.earth.visible) parts.push('📡 La <b class="text-sky-300">línea azul</b> llega a la Tierra: la antena puede transmitir.');
-      else if (earthVec?.lastHitKm != null) parts.push(`⛰️ Una montaña a <b>${earthVec.lastHitKm.toFixed(1)} km</b> tapa la Tierra: sin señal directa.`);
-      else parts.push('🌍 La Tierra está bajo el horizonte: sin señal directa.');
+      if (step.sun.visible) parts.push(t('cap.sunOn'));
+      else if (sunVec?.lastHitKm != null) parts.push(t('cap.sunBlocked', { km: sunVec.lastHitKm.toFixed(1) }));
+      else parts.push(t('cap.sunNight'));
+      if (step.earth.visible) parts.push(t('cap.earthOn'));
+      else if (earthVec?.lastHitKm != null) parts.push(t('cap.earthBlocked', { km: earthVec.lastHitKm.toFixed(1) }));
+      else parts.push(t('cap.earthBelow'));
       return parts.join('<br>');
+    }
+
+    // Racha más larga sin Sol en el periodo (horas)
+    function longestDarkHours() {
+      let best = 0, cur = 0;
+      for (const s of currentReport.timeline) {
+        cur = s.sun.visible ? 0 : cur + 1;
+        best = Math.max(best, cur);
+      }
+      return best;
+    }
+
+    // Resumen en una frase + "semáforos" de energía y comunicación (solo se ve en Explorador)
+    function renderExplorerNow(step) {
+      const sun = step.sun.visible, dte = step.earth.visible;
+      const key = sun && dte ? 'sunDte' : sun ? 'sunNoDte' : dte ? 'noSunDte' : 'none';
+      document.getElementById('nowHeadline').innerHTML = t('now.headline.' + key);
+      const energy = document.getElementById('nowEnergy');
+      energy.innerHTML = t(sun ? 'now.energyOn' : 'now.energyOff');
+      energy.className = 'rounded-lg px-3 py-2 border ' + (sun ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30') + ' text-slate-200';
+      const comms = document.getElementById('nowComms');
+      comms.innerHTML = t(dte ? 'now.commsOn' : 'now.commsOff');
+      comms.className = 'rounded-lg px-3 py-2 border ' + (dte ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30') + ' text-slate-200';
+      document.getElementById('nowMonth').innerHTML = t('now.month', {
+        sun: Math.round(currentReport.summary.sunlight_availability_pct * 0.3),
+        dte: Math.round(currentReport.summary.dte_availability_pct * 0.3),
+        dark: window.I18N.fmtDays(longestDarkHours()),
+      });
     }
 
     // Cambio de perfil: capas del 3D, etiquetas y textos
@@ -1216,7 +1329,7 @@
       document.getElementById('toggleXray').checked = engineering;
       document.getElementById('toggleHorizon3D').checked = true;
       applyLayerToggles();
-      if (currentReport) onSliderChange(currentIndex);
+      refreshLanguage(); // insignia, botón de reproducir y todos los textos dependen del modo
     });
 
     function onSliderChange(idx) {
@@ -1229,54 +1342,56 @@
       const earthMargin = step.earth.el - step.earth.horizon_el;
       const sign = x => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(2)}°`;
 
-      document.getElementById('currentTimestampLabel').textContent = `${step.timestamp_utc} UTC`;
+      document.getElementById('currentTimestampLabel').textContent = explorer
+        ? window.I18N.fmtDate(step.timestamp_utc, true)
+        : `${step.timestamp_utc} UTC`;
       document.getElementById('stepCounterLabel').textContent = explorer
-        ? `Día ${Math.floor(currentIndex / 24) + 1} de ${Math.round((currentReport.timeline.length - 1) / 24)}`
-        : `Hora ${currentIndex + 1} / ${currentReport.timeline.length}`;
+        ? t('step.day', { d: Math.floor(currentIndex / 24) + 1, n: Math.round((currentReport.timeline.length - 1) / 24) })
+        : t('step.hour', { h: currentIndex + 1, n: currentReport.timeline.length });
 
-      document.getElementById('kpiSunEl').textContent = explorer ? `${step.sun.el.toFixed(1)}°` : `${step.sun.el.toFixed(2)}°`;
+      document.getElementById('kpiSunEl').textContent = explorer ? t(step.sun.visible ? 'exp.sunYes' : 'exp.sunNo') : `${step.sun.el.toFixed(2)}°`;
       document.getElementById('kpiSolarEff').textContent = `${step.sun.solar_power_efficiency_pct.toFixed(1)}%`;
-      document.getElementById('kpiSunMargin').textContent = `Margen sobre relieve: ${sign(sunMargin)} (horizonte ${step.sun.horizon_el.toFixed(2)}° @ Az ${step.sun.az.toFixed(1)}°)`;
+      document.getElementById('kpiSunMargin').textContent = t('kpi.sunMargin', { m: sign(sunMargin), h: step.sun.horizon_el.toFixed(2), az: step.sun.az.toFixed(1) });
       const sunPill = document.getElementById('sunStatusPill');
       if (step.sun.visible) {
-        sunPill.textContent = explorer ? 'HAY LUZ' : 'ILUMINADO';
+        sunPill.textContent = t(explorer ? 'pill.sunOnExp' : 'pill.sunOnEng');
         sunPill.className = 'mono text-[11px] px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300';
       } else {
-        sunPill.textContent = explorer ? (step.sun.el > 0 ? 'TAPADO' : 'NOCHE') : 'SOMBRA / NOCHE';
+        sunPill.textContent = t(explorer ? (step.sun.el > 0 ? 'pill.sunBlocked' : 'pill.night') : 'pill.sunOffEng');
         sunPill.className = 'mono text-[11px] px-2 py-0.5 rounded font-bold bg-slate-800 text-slate-400';
       }
 
       const sunsetEl = document.getElementById('kpiSunsetCountdown');
       if (!step.sun.visible) {
-        sunsetEl.textContent = explorer ? 'Ya está oscuro' : '0.0 h (En sombra)';
+        sunsetEl.textContent = t(explorer ? 'sunset.darkExp' : 'sunset.darkEng');
         sunsetEl.className = 'mono text-xl font-bold text-slate-500';
       } else if (step.hours_to_sunset === null) {
-        sunsetEl.textContent = explorer ? 'No se pone' : 'Sin sunset hasta fin del periodo';
+        sunsetEl.textContent = t(explorer ? 'sunset.noneExp' : 'sunset.noneEng');
         sunsetEl.className = 'mono text-lg font-bold text-emerald-400';
       } else {
         sunsetEl.textContent = fmtH(step.hours_to_sunset);
         sunsetEl.className = (step.hours_to_sunset < 24 ? 'text-rose-400' : 'text-amber-300') + (explorer ? ' mono text-xl font-bold' : ' mono text-2xl font-bold');
       }
 
-      document.getElementById('kpiEarthEl').textContent = explorer ? `${step.earth.el.toFixed(1)}°` : `${step.earth.el.toFixed(2)}°`;
+      document.getElementById('kpiEarthEl').textContent = explorer ? t(step.earth.visible ? 'exp.earthYes' : 'exp.earthNo') : `${step.earth.el.toFixed(2)}°`;
       document.getElementById('kpiEarthAz').textContent = `Az: ${step.earth.az.toFixed(1)}°`;
       document.getElementById('kpiHorizonAtEarth').textContent = `${step.earth.horizon_el.toFixed(2)}°`;
-      document.getElementById('kpiEarthMargin').textContent = `Margen sobre relieve: ${sign(earthMargin)}`;
+      document.getElementById('kpiEarthMargin').textContent = t('kpi.margin', { m: sign(earthMargin) });
       const earthPill = document.getElementById('earthStatusPill');
       if (step.earth.visible) {
-        earthPill.textContent = explorer ? 'HAY SEÑAL' : 'DTE ACTIVO';
+        earthPill.textContent = t(explorer ? 'pill.earthOnExp' : 'pill.earthOnEng');
         earthPill.className = 'mono text-[11px] px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-300';
       } else {
-        earthPill.textContent = explorer ? 'SIN SEÑAL' : 'SIN LÍNEA DE VISTA';
+        earthPill.textContent = t(explorer ? 'pill.earthOffExp' : 'pill.earthOffEng');
         earthPill.className = 'mono text-[11px] px-2 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300';
       }
 
       const earthsetEl = document.getElementById('kpiEarthsetCountdown');
       if (!step.earth.visible) {
-        earthsetEl.textContent = explorer ? 'Ya está oculta' : '0.0 h (Ocluida)';
+        earthsetEl.textContent = t(explorer ? 'earthset.hiddenExp' : 'earthset.hiddenEng');
         earthsetEl.className = 'mono text-xl font-bold text-rose-400';
       } else if (step.hours_to_earthset === null) {
-        earthsetEl.textContent = explorer ? 'No se oculta' : 'Sin earthset hasta fin del periodo';
+        earthsetEl.textContent = t(explorer ? 'earthset.noneExp' : 'earthset.noneEng');
         earthsetEl.className = 'mono text-lg font-bold text-sky-400';
       } else {
         earthsetEl.textContent = fmtH(step.hours_to_earthset);
@@ -1291,12 +1406,13 @@
 
       // HUD técnico (solo Ingeniería)
       document.getElementById('hudSunNums').textContent =
-        `SOL    Az ${step.sun.az.toFixed(1)}° · El ${sign(step.sun.el)} · margen ${sign(sunMargin)}`;
+        t('hud.sunNums', { az: step.sun.az.toFixed(1), el: sign(step.sun.el), m: sign(sunMargin) });
       document.getElementById('hudEarthNums').textContent =
-        `TIERRA Az ${step.earth.az.toFixed(1)}° · El ${sign(step.earth.el)} · margen ${sign(earthMargin)}`;
+        t('hud.earthNums', { az: step.earth.az.toFixed(1), el: sign(step.earth.el), m: sign(earthMargin) });
 
       updateScene3DForStep(step);
       document.getElementById('explorerCaption').innerHTML = explorerCaptionText(step);
+      renderExplorerNow(step);
       drawHorizonPanorama();
       drawSkyDome();
     }
@@ -1305,7 +1421,7 @@
       if (playRafId) {
         stopPlay();
       } else {
-        document.getElementById('playBtn').textContent = '⏸ Pausar';
+        document.getElementById('playBtn').textContent = playLabel(true);
         lastFrameTime = performance.now();
         fractionalIndex = currentIndex;
         const tick = (now) => {
@@ -1329,7 +1445,7 @@
       if (playRafId) {
         cancelAnimationFrame(playRafId);
         playRafId = null;
-        document.getElementById('playBtn').textContent = '▶ Simular Ciclo';
+        document.getElementById('playBtn').textContent = playLabel(false);
       }
     }
 
@@ -1337,6 +1453,7 @@
       const canvas = document.getElementById('horizonCanvas');
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
+      if (rect.width < 60 || rect.height < 60) return;
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       const ctx = canvas.getContext('2d');
@@ -1371,7 +1488,7 @@
         ctx.fillText(`${el}°`, 6, y + 3);
       }
 
-      const cardinals = [{ az: 0, lbl: 'N (0°)' }, { az: 90, lbl: 'E (90°)' }, { az: 180, lbl: 'S (180°)' }, { az: 270, lbl: 'O (270°)' }, { az: 360, lbl: 'N (360°)' }];
+      const cardinals = [0, 90, 180, 270, 360].map((az, i) => ({ az, lbl: `${t('dir.' + ['N', 'E', 'S', 'W', 'N'][i])} (${az}°)` }));
       cardinals.forEach(c => {
         const x = azToX(c.az);
         ctx.beginPath();
@@ -1447,6 +1564,7 @@
       const canvas = document.getElementById('skyDomeCanvas');
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
+      if (rect.width < 60 || rect.height < 60) return; // oculto en modo Explorador
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       const ctx = canvas.getContext('2d');
@@ -1472,7 +1590,7 @@
       ctx.fillText('N', cx - 3, cy - R - 7);
       ctx.fillText('S', cx - 3, cy + R + 14);
       ctx.fillText('E', cx + R + 6, cy + 3);
-      ctx.fillText('O', cx - R - 13, cy + 3);
+      ctx.fillText(t('dir.W'), cx - R - 13, cy + 3);
 
       const profile = currentReport.horizon_profile_360;
       ctx.beginPath();
@@ -1530,6 +1648,5 @@
     init();
   </script>
   <script type="module" src="/static/js/phase4_comparator.js"></script>
-  <script src="/static/js/i18n.js"></script>
 </body>
 </html>

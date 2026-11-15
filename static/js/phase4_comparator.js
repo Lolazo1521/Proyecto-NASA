@@ -8,6 +8,10 @@
 //   - Ingeniería: consola de misión arriba (ventanas de luz/DTE, umbrales que deciden el
 //     veredicto, tabla horaria y exportación) y comparador técnico con los mismos umbrales.
 // index.html avisa de cada escenario cargado con el evento 'lunar:report'.
+// Todos los textos salen de static/js/i18n.js (t) y se vuelven a pintar con 'lunar:langchange'.
+
+const t = (key, vars) => window.I18N.t(key, vars);
+const fmtDays = (h) => window.I18N.fmtDays(h);
 
 // Valores de partida para la demo (no son requisitos oficiales de NASA): se ajustan en la consola.
 const DEFAULT_THRESHOLDS = {
@@ -34,13 +38,13 @@ function isUsable(step, key, minMargin) {
 function computeWindows(timeline, key, minMargin) {
   const runs = [];
   let cur = null;
-  timeline.forEach((t, i) => {
-    if (isUsable(t, key, minMargin)) {
-      const m = marginOf(t, key);
-      if (!cur) cur = { start: i, end: i, minMargin: m, maxEl: t[key].el };
+  timeline.forEach((s, i) => {
+    if (isUsable(s, key, minMargin)) {
+      const m = marginOf(s, key);
+      if (!cur) cur = { start: i, end: i, minMargin: m, maxEl: s[key].el };
       cur.end = i;
       cur.minMargin = Math.min(cur.minMargin, m);
-      cur.maxEl = Math.max(cur.maxEl, t[key].el);
+      cur.maxEl = Math.max(cur.maxEl, s[key].el);
     } else if (cur) {
       runs.push(cur);
       cur = null;
@@ -59,27 +63,28 @@ function computeWindows(timeline, key, minMargin) {
 
 function longestGap(timeline, key, minMargin) {
   let best = 0, cur = 0;
-  for (const t of timeline) {
-    if (isUsable(t, key, minMargin)) cur = 0;
+  for (const s of timeline) {
+    if (isUsable(s, key, minMargin)) cur = 0;
     else best = Math.max(best, ++cur);
   }
   return best;
 }
 
+// Devuelve datos (sin textos): los textos se generan al pintar, en el idioma activo
 function assessViability(report, th) {
   const tl = report.timeline;
   const n = tl.length;
-  const sunHours = tl.filter(t => isUsable(t, 'sun', th.sunMargin)).length;
-  const dteHours = tl.filter(t => isUsable(t, 'earth', th.dteMargin)).length;
+  const sunHours = tl.filter(s => isUsable(s, 'sun', th.sunMargin)).length;
+  const dteHours = tl.filter(s => isUsable(s, 'earth', th.dteMargin)).length;
   const usableSunPct = (sunHours / n) * 100;
   const usableDtePct = (dteHours / n) * 100;
   const longestDark = longestGap(tl, 'sun', th.sunMargin);
   const longestNoDte = longestGap(tl, 'earth', th.dteMargin);
 
   const criteria = [
-    { id: 'sun', label: 'Luz útil', value: `${usableSunPct.toFixed(1)}% (${sunHours} h)`, target: `≥ ${th.minSunPct}%`, ok: usableSunPct >= th.minSunPct },
-    { id: 'dte', label: 'Enlace DTE útil', value: `${usableDtePct.toFixed(1)}% (${dteHours} h)`, target: `≥ ${th.minDtePct}%`, ok: usableDtePct >= th.minDtePct },
-    { id: 'dark', label: 'Sombra continua máx.', value: `${longestDark} h (${(longestDark / 24).toFixed(1)} d)`, target: `≤ ${th.maxDarkHours} h`, ok: longestDark <= th.maxDarkHours },
+    { id: 'sun', value: `${usableSunPct.toFixed(1)}% (${sunHours} h)`, target: `≥ ${th.minSunPct}%`, ok: usableSunPct >= th.minSunPct },
+    { id: 'dte', value: `${usableDtePct.toFixed(1)}% (${dteHours} h)`, target: `≥ ${th.minDtePct}%`, ok: usableDtePct >= th.minDtePct },
+    { id: 'dark', value: `${longestDark} h (${(longestDark / 24).toFixed(1)} d)`, target: `≤ ${th.maxDarkHours} h`, ok: longestDark <= th.maxDarkHours },
   ];
   const fails = criteria.filter(c => !c.ok).length;
   const verdict = fails === 0 ? 'VIABLE' : fails === 1 ? 'MARGINAL' : 'NO VIABLE';
@@ -98,10 +103,16 @@ const VERDICT_STYLE = {
 // "2026-Nov-16 05:00" → "Nov-16 05:00"
 const shortTs = ts => (ts || '').slice(5);
 
-function fmtDays(hours) {
-  if (hours < 24) return `${hours} horas`;
-  const d = hours / 24;
-  return `${d.toFixed(d < 10 ? 1 : 0)} días`;
+// Altura máxima del Sol en palabras (para el modo Explorador)
+function sunHeightWords(el) {
+  const key = el < 5 ? 'sunHeight.veryLow' : el < 30 ? 'sunHeight.low' : 'sunHeight.high';
+  return t(key, { el: el.toFixed(1) });
+}
+
+// Mismo criterio que index.html para mostrar el nombre del sitio en el idioma activo
+function siteName(site) {
+  if (site.id === 'custom') return t('site.custom.name', { lat: site.lat.toFixed(2), lon: site.lon.toFixed(2) });
+  return window.I18N.has(`site.${site.id}.name`) ? t(`site.${site.id}.name`) : site.name;
 }
 
 class Phase4Manager {
@@ -114,6 +125,7 @@ class Phase4Manager {
     this.th = { ...DEFAULT_THRESHOLDS };
     this.chartMode = null;      // 'full' | 'zoom' (null = automático según latitud)
     this.busy = false;
+    this.status = null;         // { key, vars, kind } del mensaje del comparador
     this.showHourly = false;
     this.mainReport = window.lunarReport || null; // escenario cargado en la vista principal
   }
@@ -130,6 +142,12 @@ class Phase4Manager {
       this.mainReport = e.detail;
       this.renderTop(false);
     });
+    window.addEventListener('lunar:langchange', () => {
+      this.renderModeBar();
+      this.updateModeButtons();
+      this.renderTop(false);
+      this.renderWorkspace();
+    });
     window.addEventListener('resize', () => this.drawComparisonChart());
 
     this.renderModeBar();
@@ -140,9 +158,7 @@ class Phase4Manager {
 
   // ---------- Perfil ----------
 
-  applyMode() {
-    document.body.dataset.mode = this.mode;
-    try { localStorage.setItem(MODE_KEY, this.mode); } catch (_) { /* sin almacenamiento */ }
+  updateModeButtons() {
     const on = 'px-3 py-1 rounded-md text-xs font-bold transition bg-sky-500 text-slate-950';
     const off = 'px-3 py-1 rounded-md text-xs font-bold transition text-slate-300 hover:text-white';
     const exp = document.getElementById('btnModeExplorer');
@@ -150,11 +166,15 @@ class Phase4Manager {
     if (exp) exp.className = this.mode === 'explorer' ? on : off;
     if (eng) eng.className = this.mode === 'engineering' ? on : off;
     const hint = document.getElementById('modeHint');
-    if (hint) {
-      hint.textContent = this.mode === 'explorer'
-        ? 'Explicaciones sencillas, menos capas en 3D y guía de por qué la Luna es tan extrema.'
-        : 'Márgenes sobre el relieve, ventanas operativas, umbrales de viabilidad y exportación.';
-    }
+    if (hint) hint.textContent = t(this.mode === 'explorer' ? 'mode.hintExp' : 'mode.hintEng');
+    const pin = document.getElementById('pinLabel');
+    if (pin) pin.textContent = t(this.mode === 'explorer' ? 'pin.buttonExp' : 'pin.button');
+  }
+
+  applyMode() {
+    document.body.dataset.mode = this.mode;
+    try { localStorage.setItem(MODE_KEY, this.mode); } catch (_) { /* sin almacenamiento */ }
+    this.updateModeButtons();
     window.dispatchEvent(new CustomEvent('lunar:modechange', { detail: { mode: this.mode } }));
   }
 
@@ -174,16 +194,21 @@ class Phase4Manager {
     return (sc.timeline[0]?.timestamp_utc || '').split(' ')[0];
   }
 
-  setStatus(msg, kind = 'error') {
+  setStatus(status) {
+    this.status = status;
+    this.renderStatus();
+  }
+
+  renderStatus() {
     const el = document.getElementById('compStatus');
     if (!el) return;
-    if (!msg) { el.className = 'hidden'; el.textContent = ''; return; }
+    if (!this.status) { el.className = 'hidden'; el.textContent = ''; return; }
     const styles = {
       error: 'text-xs rounded-lg px-3 py-2 bg-rose-950/60 border border-rose-500/40 text-rose-200',
       info: 'text-xs rounded-lg px-3 py-2 bg-slate-950 border border-slate-700 text-slate-300',
     };
-    el.className = styles[kind] || styles.info;
-    el.textContent = msg;
+    el.className = styles[this.status.kind] || styles.info;
+    el.textContent = t(this.status.key, this.status.vars);
   }
 
   renderModeBar() {
@@ -194,17 +219,17 @@ class Phase4Manager {
       <div class="bg-slate-950/80 border-b border-slate-800">
       <div class="max-w-7xl mx-auto px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Perfil de Interfaz:</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">${t('mode.label')}</span>
           <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-700">
-            <button id="btnModeExplorer">🎓 Modo Explorador (Educativo)</button>
-            <button id="btnModeEngineering">🛰️ Modo Ingeniería (Misión)</button>
+            <button id="btnModeExplorer">${t('mode.explorer')}</button>
+            <button id="btnModeEngineering">${t('mode.engineering')}</button>
           </div>
           <span id="modeHint" class="hidden 2xl:inline text-[11px] text-slate-400"></span>
         </div>
         <div class="flex items-center gap-2">
           <button id="btnPinCurrentScenario" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow">
-            <span>📌 Fijar Escenario Actual al Comparador</span>
-            <span id="pinnedCountBadge" class="mono bg-indigo-950 px-1.5 py-0.5 rounded text-[11px]">0/3</span>
+            <span id="pinLabel">${t(this.mode === 'explorer' ? 'pin.buttonExp' : 'pin.button')}</span>
+            <span id="pinnedCountBadge" class="mono bg-indigo-950 px-1.5 py-0.5 rounded text-[11px]">${this.scenarios.length}/3</span>
           </button>
         </div>
       </div>
@@ -238,47 +263,28 @@ class Phase4Manager {
   }
 
   getExplorerHTML() {
+    const card = (n, color) => `
+      <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-4 space-y-2">
+        <div class="${color} font-bold text-sm">${t(`guide.c${n}.title`)}</div>
+        <p class="text-sm text-slate-300 leading-relaxed">${t(`guide.c${n}.body`)}</p>
+      </div>`;
     return `
       <section class="bg-slate-900 border border-emerald-500/25 rounded-xl p-5 space-y-4">
+        <div class="text-sm text-slate-300 bg-sky-500/10 border border-sky-500/30 rounded-lg px-4 py-3">${t('guide.steps')}</div>
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 class="text-base font-bold text-white">🎓 ¿Por qué es tan difícil alunizar en el Polo Sur?</h2>
-            <p class="text-xs text-slate-400">Cuatro ideas para entender lo que ves en el visor. Mueve la barra de tiempo o pulsa "Simular Ciclo" para verlas en acción.</p>
+            <h2 class="text-lg font-bold text-white">${t('guide.title')}</h2>
+            <p class="text-sm text-slate-400">${t('guide.sub')}</p>
           </div>
-          <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium">Vista Divulgación</span>
+          <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium">${t('guide.badge')}</span>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-4 space-y-2">
-            <div class="text-amber-400 font-bold text-xs uppercase">1. Día y noche de 14 días</div>
-            <p class="text-xs text-slate-300 leading-relaxed">
-              En la Tierra un día dura 24 horas. En la Luna, cerca del ecuador, el Sol brilla <strong>casi 15 días seguidos</strong> y luego llega una noche helada de otros 15 días (−170 °C). El lander tiene que sobrevivir con baterías.
-            </p>
-          </div>
-          <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-4 space-y-2">
-            <div class="text-sky-400 font-bold text-xs uppercase">2. Sin aire, sin crepúsculo</div>
-            <p class="text-xs text-slate-300 leading-relaxed">
-              No hay atmósfera que reparta la luz: si una montaña tapa el Sol, se pasa de luz intensa a <strong>oscuridad total</strong>. Las sombras del visor son negras por eso.
-            </p>
-          </div>
-          <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-4 space-y-2">
-            <div class="text-indigo-400 font-bold text-xs uppercase">3. La Tierra casi quieta</div>
-            <p class="text-xs text-slate-300 leading-relaxed">
-              La Luna siempre nos da la misma cara, así que la Tierra no sale ni se pone como el Sol: se queda en la misma zona del cielo y solo <strong>se mece un poco</strong> (libración). En la cara oculta nunca se ve.
-            </p>
-          </div>
-          <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-4 space-y-2">
-            <div class="text-teal-400 font-bold text-xs uppercase">4. El dilema del Polo Sur</div>
-            <p class="text-xs text-slate-300 leading-relaxed">
-              El eje de la Luna casi no está inclinado (<strong>1.54°</strong>), así que en el polo el Sol da vueltas rozando el horizonte. Los fondos de los cráteres nunca reciben luz y guardan <strong>hielo</strong>; las crestas tienen luz casi siempre.
-            </p>
-          </div>
+          ${card(1, 'text-amber-300')}
+          ${card(2, 'text-sky-300')}
+          ${card(3, 'text-indigo-300')}
+          ${card(4, 'text-teal-300')}
         </div>
-
-        <div class="text-xs text-slate-400 bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2">
-          💡 <strong class="text-slate-200">Prueba esto:</strong> mira Shackleton y luego cambia a Apollo 11 en "Sitio de alunizaje".
-          En el polo el Sol nunca pasa de ~2° de altura; en el ecuador sube hasta casi 90°. Abre "🌕 Luna completa" para ver dónde da el Sol.
-        </div>
+        <div class="text-sm text-slate-400 bg-slate-950/60 border border-slate-800 rounded-lg px-4 py-3">${t('guide.try')}</div>
       </section>
     `;
   }
@@ -287,25 +293,25 @@ class Phase4Manager {
     const r = this.mainReport;
     const th = this.th;
     if (!r) {
-      return `<section class="bg-slate-900 border border-indigo-500/30 rounded-xl p-5 text-xs text-slate-400">🛰️ Consola de misión: esperando el escenario…</section>`;
+      return `<section class="bg-slate-900 border border-indigo-500/30 rounded-xl p-5 text-xs text-slate-400">${t('eng.waiting')}</section>`;
     }
     const a = assessViability(r, th);
     const sunWins = computeWindows(r.timeline, 'sun', th.sunMargin);
     const dteWins = computeWindows(r.timeline, 'earth', th.dteMargin);
-    const panel = r.summary.panel_mode === 'vertical' ? 'verticales con seguimiento (cos el)' : 'horizontales (sen el)';
+    const panel = t(r.summary.panel_mode === 'vertical' ? 'eng.panelVertical' : 'eng.panelHorizontal');
     const start = (r.timeline[0]?.timestamp_utc || '').split(' ')[0];
 
-    const input = (id, label, value, step, color) => `
+    const input = (id, value, step, color) => `
       <label class="flex items-center justify-between gap-2 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px]">
-        <span class="text-slate-400">${label}</span>
+        <span class="text-slate-400">${t('th.' + id)}</span>
         <input data-th="${id}" type="number" step="${step}" value="${value}" class="th-input mono w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 ${color} font-bold text-right" />
       </label>`;
 
-    const winTable = (wins, color, emptyMsg) => {
+    const winTable = (wins, color, emptyKey) => {
       if (!wins.length) {
-        return `<div class="p-3 text-xs text-slate-400 border border-dashed border-slate-700 rounded-lg">${emptyMsg}</div>`;
+        return `<div class="p-3 text-xs text-slate-400 border border-dashed border-slate-700 rounded-lg">${t(emptyKey)}</div>`;
       }
-      const total = wins.reduce((s, w) => s + w.hours, 0);
+      const total = wins.reduce((sum, w) => sum + w.hours, 0);
       const rows = wins.slice(0, 8).map((w, i) => `
         <tr class="border-t border-slate-800/70">
           <td class="py-1 px-2 text-slate-500">${i + 1}</td>
@@ -314,16 +320,16 @@ class Phase4Manager {
           <td class="py-1 px-2 ${color} text-right">${w.hours} h</td>
           <td class="py-1 px-2 text-slate-400 text-right">+${w.minMargin.toFixed(2)}°</td>
         </tr>`).join('');
-      const more = wins.length > 8 ? `<tr><td colspan="5" class="py-1 px-2 text-slate-500">… y ${wins.length - 8} ventanas más</td></tr>` : '';
+      const more = wins.length > 8 ? `<tr><td colspan="5" class="py-1 px-2 text-slate-500">${t('win.more', { n: wins.length - 8 })}</td></tr>` : '';
       return `
         <table class="w-full text-[11px] mono">
           <thead><tr class="text-slate-500">
-            <th class="py-1 px-2 text-left">#</th><th class="py-1 px-2 text-left">Inicio (UTC)</th><th class="py-1 px-2 text-left">Fin</th>
-            <th class="py-1 px-2 text-right">Dur.</th><th class="py-1 px-2 text-right">Margen mín.</th>
+            <th class="py-1 px-2 text-left">#</th><th class="py-1 px-2 text-left">${t('win.start')}</th><th class="py-1 px-2 text-left">${t('win.end')}</th>
+            <th class="py-1 px-2 text-right">${t('win.dur')}</th><th class="py-1 px-2 text-right">${t('win.minMargin')}</th>
           </tr></thead>
           <tbody>${rows}${more}</tbody>
         </table>
-        <div class="mt-1 text-[10px] text-slate-500">${wins.length} ventana(s) · ${total} h en total · ◀ ya iniciada / ▶ continúa después del periodo</div>`;
+        <div class="mt-1 text-[10px] text-slate-500">${t('win.footer', { n: wins.length, h: total })}</div>`;
     };
 
     const hourly = this.showHourly ? this.getHourlyTableHTML(r) : '';
@@ -332,54 +338,54 @@ class Phase4Manager {
       <section class="bg-slate-900 border border-indigo-500/30 rounded-xl p-5 space-y-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="text-base font-bold text-white">🛰️ Consola de Misión · ${r.site.name}</h2>
-            <p class="text-xs text-slate-400 mono">Desde ${start} · ${r.timeline.length - 1} h · paneles ${panel} · los umbrales deciden el veredicto (aquí y en el comparador)</p>
+            <h2 class="text-base font-bold text-white">${t('eng.title', { site: siteName(r.site) })}</h2>
+            <p class="text-xs text-slate-400 mono">${t('eng.sub', { start, h: r.timeline.length - 1, panel })}</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button id="btnToggleHourly" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold transition">${this.showHourly ? 'Ocultar' : 'Ver'} tabla horaria</button>
+            <button id="btnToggleHourly" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold transition">${t(this.showHourly ? 'eng.hideHourly' : 'eng.showHourly')}</button>
             <button id="btnExportCSV" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">⬇ CSV</button>
             <button id="btnExportJSON" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold transition">⬇ JSON</button>
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
-          ${input('sunMargin', 'Margen solar mín. (°)', th.sunMargin, 0.25, 'text-amber-300')}
-          ${input('dteMargin', 'Margen DTE mín. (°)', th.dteMargin, 0.25, 'text-sky-300')}
-          ${input('minSunPct', 'Luz útil mín. (%)', th.minSunPct, 5, 'text-amber-300')}
-          ${input('minDtePct', 'DTE útil mín. (%)', th.minDtePct, 5, 'text-sky-300')}
-          ${input('maxDarkHours', 'Sombra máx. (h)', th.maxDarkHours, 12, 'text-rose-300')}
-          <button id="btnResetTh" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] transition">Restaurar umbrales</button>
+          ${input('sunMargin', th.sunMargin, 0.25, 'text-amber-300')}
+          ${input('dteMargin', th.dteMargin, 0.25, 'text-sky-300')}
+          ${input('minSunPct', th.minSunPct, 5, 'text-amber-300')}
+          ${input('minDtePct', th.minDtePct, 5, 'text-sky-300')}
+          ${input('maxDarkHours', th.maxDarkHours, 12, 'text-rose-300')}
+          <button id="btnResetTh" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] transition">${t('eng.reset')}</button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div class="lg:col-span-4 bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold uppercase text-slate-400">Veredicto</span>
-              <span class="mono text-sm font-bold px-2.5 py-1 rounded border ${VERDICT_STYLE[a.verdict]}">${a.verdict}</span>
+              <span class="text-xs font-bold uppercase text-slate-400">${t('eng.verdict')}</span>
+              <span class="mono text-sm font-bold px-2.5 py-1 rounded border ${VERDICT_STYLE[a.verdict]}">${t('verdict.' + a.verdict)}</span>
             </div>
             <ul class="space-y-1.5 text-xs">
               ${a.criteria.map(c => `
                 <li class="flex items-center justify-between gap-2">
-                  <span class="${c.ok ? 'text-emerald-400' : 'text-rose-400'}">${c.ok ? '✔' : '✖'} ${c.label}</span>
+                  <span class="${c.ok ? 'text-emerald-400' : 'text-rose-400'}">${c.ok ? '✔' : '✖'} ${t('crit.' + c.id)}</span>
                   <span class="mono text-slate-200">${c.value} <span class="text-slate-500">${c.target}</span></span>
                 </li>`).join('')}
             </ul>
             <div class="border-t border-slate-800 pt-2 space-y-1 text-[11px] text-slate-400 mono">
-              <div>Máx. sin enlace DTE: <span class="text-slate-200">${a.longestNoDte} h (${(a.longestNoDte / 24).toFixed(1)} d)</span></div>
-              <div>Eficiencia media con luz: <span class="text-slate-200">${r.summary.mean_panel_efficiency_lit_pct ?? '—'}%</span></div>
-              <div>Elevación solar máx.: <span class="text-slate-200">${r.summary.max_solar_elevation_deg.toFixed(2)}°</span></div>
-              ${a.needsRelay ? '<div class="text-rose-300 font-semibold">⚠ Sin enlace DTE útil: requiere satélite relé</div>' : ''}
+              <div>${t('eng.maxNoDte')} <span class="text-slate-200">${a.longestNoDte} h (${(a.longestNoDte / 24).toFixed(1)} d)</span></div>
+              <div>${t('eng.meanEff')} <span class="text-slate-200">${r.summary.mean_panel_efficiency_lit_pct ?? '—'}%</span></div>
+              <div>${t('eng.maxEl')} <span class="text-slate-200">${r.summary.max_solar_elevation_deg.toFixed(2)}°</span></div>
+              ${a.needsRelay ? `<div class="text-rose-300 font-semibold">${t('eng.relay')}</div>` : ''}
             </div>
           </div>
 
           <div class="lg:col-span-4 bg-slate-950 border border-slate-800 rounded-lg p-3">
-            <div class="text-xs font-bold text-amber-300 mb-1">☀ Ventanas de luz útil <span class="text-slate-500 font-normal">(margen ≥ ${th.sunMargin}°)</span></div>
-            ${winTable(sunWins, 'text-amber-300', 'Sin ventanas de luz útil con este margen en el periodo.')}
+            <div class="text-xs font-bold text-amber-300 mb-1">${t('eng.sunWin')} <span class="text-slate-500 font-normal">${t('eng.marginGe', { m: th.sunMargin })}</span></div>
+            ${winTable(sunWins, 'text-amber-300', 'eng.noSunWin')}
           </div>
 
           <div class="lg:col-span-4 bg-slate-950 border border-slate-800 rounded-lg p-3">
-            <div class="text-xs font-bold text-sky-300 mb-1">📡 Ventanas de enlace DTE <span class="text-slate-500 font-normal">(margen ≥ ${th.dteMargin}°)</span></div>
-            ${winTable(dteWins, 'text-sky-300', 'Sin ventanas de enlace directo con este margen: se necesita un satélite relé.')}
+            <div class="text-xs font-bold text-sky-300 mb-1">${t('eng.dteWin')} <span class="text-slate-500 font-normal">${t('eng.marginGe', { m: th.dteMargin })}</span></div>
+            ${winTable(dteWins, 'text-sky-300', 'eng.noDteWin')}
           </div>
         </div>
         ${hourly}
@@ -395,31 +401,31 @@ class Phase4Manager {
         <table class="w-full text-left border-collapse text-xs mono">
           <thead class="sticky top-0">
             <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
-              <th class="py-2 px-3">Timestamp (UTC)</th><th class="py-2 px-3">Sol Az / El</th><th class="py-2 px-3">Horizonte Sol</th>
-              <th class="py-2 px-3">Potencia PV</th><th class="py-2 px-3">Tierra Az / El</th><th class="py-2 px-3">Estado DTE</th><th class="py-2 px-3">Sunset en</th>
+              <th class="py-2 px-3">${t('hourly.ts')}</th><th class="py-2 px-3">${t('hourly.sun')}</th><th class="py-2 px-3">${t('hourly.sunHorizon')}</th>
+              <th class="py-2 px-3">${t('hourly.pv')}</th><th class="py-2 px-3">${t('hourly.earth')}</th><th class="py-2 px-3">${t('hourly.dte')}</th><th class="py-2 px-3">${t('hourly.sunset')}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/70 bg-slate-900/40">
-            ${rows.map(t => `
+            ${rows.map(s => `
               <tr class="hover:bg-slate-800/40">
-                <td class="py-1.5 px-3 text-slate-200">${t.timestamp_utc}</td>
-                <td class="py-1.5 px-3 text-amber-300">${t.sun.az.toFixed(1)}° / ${t.sun.el.toFixed(2)}°</td>
-                <td class="py-1.5 px-3 text-slate-400">${t.sun.horizon_el.toFixed(2)}°</td>
-                <td class="py-1.5 px-3 ${isUsable(t, 'sun', th.sunMargin) ? 'text-emerald-400' : 'text-rose-400'}">${t.sun.solar_power_efficiency_pct.toFixed(1)}%</td>
-                <td class="py-1.5 px-3 text-sky-300">${t.earth.az.toFixed(1)}° / ${t.earth.el.toFixed(2)}°</td>
+                <td class="py-1.5 px-3 text-slate-200">${s.timestamp_utc}</td>
+                <td class="py-1.5 px-3 text-amber-300">${s.sun.az.toFixed(1)}° / ${s.sun.el.toFixed(2)}°</td>
+                <td class="py-1.5 px-3 text-slate-400">${s.sun.horizon_el.toFixed(2)}°</td>
+                <td class="py-1.5 px-3 ${isUsable(s, 'sun', th.sunMargin) ? 'text-emerald-400' : 'text-rose-400'}">${s.sun.solar_power_efficiency_pct.toFixed(1)}%</td>
+                <td class="py-1.5 px-3 text-sky-300">${s.earth.az.toFixed(1)}° / ${s.earth.el.toFixed(2)}°</td>
                 <td class="py-1.5 px-3">${
-                  isUsable(t, 'earth', th.dteMargin)
-                    ? '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">NOMINAL</span>'
-                    : t.earth.visible
-                    ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">RASANTE</span>'
-                    : '<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">OCLUIDO</span>'
+                  isUsable(s, 'earth', th.dteMargin)
+                    ? `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">${t('hourly.nominal')}</span>`
+                    : s.earth.visible
+                    ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">${t('hourly.grazing')}</span>`
+                    : `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">${t('hourly.occluded')}</span>`
                 }</td>
-                <td class="py-1.5 px-3 text-slate-300">${t.hours_to_sunset === null ? 'fin periodo' : t.hours_to_sunset.toFixed(1) + 'h'}</td>
+                <td class="py-1.5 px-3 text-slate-300">${s.hours_to_sunset === null ? t('hourly.endPeriod') : s.hours_to_sunset.toFixed(1) + 'h'}</td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
-      <p class="text-[11px] text-slate-500">* Muestras cada 12 h. Exporta CSV/JSON para obtener todas las horas.</p>`;
+      <p class="text-[11px] text-slate-500">${t('hourly.note')}</p>`;
   }
 
   bindTopEvents() {
@@ -451,6 +457,10 @@ class Phase4Manager {
     const host = document.getElementById('phase4Workspace');
     if (!host) return;
     const explorer = this.mode === 'explorer';
+    // Conservar lo que el usuario tenía elegido en el selector rápido al volver a pintar
+    const prevSite = document.getElementById('compQuickSite')?.value;
+    const prevDate = document.getElementById('compQuickDate')?.value;
+    const quickDate = prevDate || document.getElementById('startDateInput')?.value || '2026-11-15';
 
     host.innerHTML = `
       <div class="space-y-6 pb-12">
@@ -458,20 +468,18 @@ class Phase4Manager {
           <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
             <div>
               <h2 class="text-base font-bold text-white flex items-center gap-2">
-                <span>${explorer ? 'Compara sitios y fechas' : 'Comparador Multi-Escenario (Trade-off Ciencia vs. Ingeniería)'}</span>
-                <span class="text-[10px] uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Hasta 3 Escenarios</span>
+                <span>${t(explorer ? 'comp.titleExp' : 'comp.titleEng')}</span>
+                <span class="text-[10px] uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">${t(explorer ? 'comp.max3Exp' : 'comp.max3')}</span>
               </h2>
-              <p class="text-xs text-slate-400">${explorer
-                ? 'Pon lado a lado hasta 3 sitios o fechas y mira cuál tiene más luz y más contacto con la Tierra.'
-                : 'Evalúa sitios candidatos o impactos por retrasos de lanzamiento lado a lado (veredicto con los umbrales de la consola).'}</p>
+              <p class="text-xs text-slate-400">${t(explorer ? 'comp.subExp' : 'comp.subEng')}</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <select id="compQuickSite" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
-                ${this.sitesCatalog.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                ${this.sitesCatalog.map(s => `<option value="${s.id}"${s.id === prevSite ? ' selected' : ''}>${siteName(s)}</option>`).join('')}
               </select>
-              <input id="compQuickDate" type="date" value="${document.getElementById('startDateInput')?.value || '2026-11-15'}" class="mono bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
-              <button id="btnAddQuickScenario" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold transition">+ Añadir</button>
-              <button id="btnClearScenarios" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">Limpiar</button>
+              <input id="compQuickDate" type="date" value="${quickDate}" class="mono bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+              <button id="btnAddQuickScenario" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold transition">${t('comp.add')}</button>
+              <button id="btnClearScenarios" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">${t('comp.clear')}</button>
             </div>
           </div>
 
@@ -484,17 +492,15 @@ class Phase4Manager {
           <div id="comparisonChartWrapper" class="${this.scenarios.length > 0 ? '' : 'hidden'} bg-slate-950 border border-slate-800 rounded-xl p-4">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
               <div class="flex items-center gap-3">
-                <span class="text-xs font-bold text-slate-300">${explorer ? 'Altura del Sol día por día' : 'Elevación solar a lo largo del periodo (30 días)'}</span>
-                <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5 text-[11px]">
-                  <button data-chart-mode="zoom" class="chart-mode-btn px-2 py-0.5 rounded">Zoom horizonte ±10°</button>
-                  <button data-chart-mode="full" class="chart-mode-btn px-2 py-0.5 rounded">Escala completa</button>
+                <span class="text-xs font-bold text-slate-300">${t(explorer ? 'chart.titleExp' : 'chart.titleEng')}</span>
+                <div class="${explorer ? 'hidden' : 'flex'} items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5 text-[11px]">
+                  <button data-chart-mode="zoom" class="chart-mode-btn px-2 py-0.5 rounded">${t('chart.zoom')}</button>
+                  <button data-chart-mode="full" class="chart-mode-btn px-2 py-0.5 rounded">${t('chart.full')}</button>
                 </div>
               </div>
               <div id="compChartLegend" class="flex flex-wrap gap-3 text-xs"></div>
             </div>
-            <p class="text-[11px] text-slate-500 mb-1">${explorer
-              ? 'Línea = altura del Sol · punteada = altura de las montañas en esa dirección · barras de abajo = días con luz'
-              : 'Línea sólida = elevación del Sol · punteada = horizonte topográfico en esa dirección · franjas inferiores = horas con Sol visible (cada escenario)'}</p>
+            <p class="text-[11px] text-slate-500 mb-1">${t(explorer ? 'chart.legendExp' : 'chart.legendEng')}</p>
             <div class="w-full h-64">
               <canvas id="comparisonCanvas" class="w-full h-full block"></canvas>
             </div>
@@ -503,6 +509,7 @@ class Phase4Manager {
       </div>
     `;
 
+    this.renderStatus();
     if (this.scenarios.length > 0) this.drawComparisonChart();
     this.bindWorkspaceEvents();
   }
@@ -511,10 +518,8 @@ class Phase4Manager {
     if (this.scenarios.length === 0) {
       return `
         <div class="md:col-span-3 p-8 rounded-xl bg-slate-950/70 border border-dashed border-slate-800 text-center space-y-2">
-          <div class="text-sm font-semibold text-slate-300">No hay escenarios fijados para comparar</div>
-          <p class="text-xs text-slate-400 max-w-xl mx-auto">
-            Usa el botón superior <strong>"📌 Fijar Escenario Actual"</strong> o selecciona un sitio y fecha arriba y pulsa <strong>"+ Añadir"</strong> para contrastar hasta 3 planes de alunizaje lado a lado.
-          </p>
+          <div class="text-sm font-semibold text-slate-300">${t(this.mode === 'explorer' ? 'comp.emptyTitleExp' : 'comp.emptyTitle')}</div>
+          <p class="text-xs text-slate-400 max-w-xl mx-auto">${t(this.mode === 'explorer' ? 'comp.emptyBodyExp' : 'comp.emptyBody')}</p>
         </div>`;
     }
 
@@ -529,35 +534,38 @@ class Phase4Manager {
       const a = assessed[idx];
       const starSun = multi && a.usableSunPct === bestSun ? ' ★' : '';
       const starDte = multi && a.usableDtePct === bestDte ? ' ★' : '';
+      const panelWord = t(sc.summary.panel_mode === 'vertical' ? 'panel.vertical' : 'panel.horizontal');
       const head = `
         <div>
           <div class="flex items-start justify-between gap-2 mb-2">
-            <span class="mono text-[11px] font-bold px-2 py-0.5 rounded ${badges[idx]}">ESCENARIO #${idx + 1}</span>
-            <button data-remove-idx="${idx}" class="btn-remove-sc text-xs text-slate-500 hover:text-rose-400">✕ Quitar</button>
+            <span class="mono text-[11px] font-bold px-2 py-0.5 rounded ${badges[idx]}">${t(this.mode === 'explorer' ? 'card.scenarioExp' : 'card.scenario', { n: idx + 1 })}</span>
+            <button data-remove-idx="${idx}" class="btn-remove-sc text-xs text-slate-500 hover:text-rose-400">${t('card.remove')}</button>
           </div>
-          <h3 class="font-bold text-sm text-white">${sc.site.name}</h3>
-          <p class="mono text-[11px] text-slate-400 mt-0.5">Inicio: ${this.startLabel(sc)} • Lat ${sc.site.lat.toFixed(2)}°</p>
+          <h3 class="font-bold text-sm text-white">${siteName(sc.site)}</h3>
+          <p class="${this.mode === 'explorer' ? '' : 'mono '}text-[11px] text-slate-400 mt-0.5">${this.mode === 'explorer'
+            ? t('card.startExp', { d: window.I18N.fmtDate(sc.timeline[0]?.timestamp_utc) })
+            : t('card.start', { d: this.startLabel(sc), lat: sc.site.lat.toFixed(2) })}</p>
         </div>`;
 
       if (this.mode === 'explorer') {
         const reasons = [];
         a.criteria.forEach(c => {
           if (c.ok) return;
-          if (c.id === 'sun') reasons.push('poca luz para los paneles');
-          if (c.id === 'dte') reasons.push(a.needsRelay ? 'no se ve la Tierra: necesitaría un satélite relé' : 'poco tiempo de contacto con la Tierra');
-          if (c.id === 'dark') reasons.push(`sombras de hasta ${fmtDays(a.longestDark)} seguidos`);
+          if (c.id === 'sun') reasons.push(t('reason.sun'));
+          if (c.id === 'dte') reasons.push(t(a.needsRelay ? 'reason.relay' : 'reason.dte'));
+          if (c.id === 'dark') reasons.push(t('reason.dark', { d: fmtDays(a.longestDark) }));
         });
         const verdict = a.verdict === 'VIABLE'
-          ? '<span class="text-emerald-400 font-semibold">✅ Buen sitio para esta fecha: tiene luz y contacto suficientes.</span>'
-          : `<span class="${a.verdict === 'MARGINAL' ? 'text-amber-300' : 'text-rose-400'} font-semibold">${a.verdict === 'MARGINAL' ? '⚠️ Se puede, con riesgo' : '❌ Muy difícil'}: ${reasons.join('; ')}.</span>`;
+          ? `<span class="text-emerald-400 font-semibold">${t('card.good')}</span>`
+          : `<span class="${a.verdict === 'MARGINAL' ? 'text-amber-300' : 'text-rose-400'} font-semibold">${t(a.verdict === 'MARGINAL' ? 'card.risky' : 'card.hard')}: ${reasons.join('; ')}.</span>`;
         return `
           <div class="bg-slate-950 border ${colors[idx]} rounded-xl p-4 flex flex-col justify-between space-y-4">
             ${head}
             <div class="space-y-2 text-xs border-t border-slate-800/80 pt-3 text-slate-300">
-              <div>☀️ Hay luz útil <b class="text-white">${a.usableSunPct.toFixed(0)}%</b> del mes${starSun}</div>
-              <div>📡 Contacto con la Tierra <b class="text-white">${a.usableDtePct.toFixed(0)}%</b> del mes${starDte}</div>
-              <div>🌑 La sombra más larga dura <b class="text-white">${fmtDays(a.longestDark)}</b></div>
-              <div>⬆️ El Sol sube como máximo <b class="text-white">${sc.summary.max_solar_elevation_deg.toFixed(1)}°</b></div>
+              <div>${t('card.sunPct', { days: Math.round(a.usableSunPct * 0.3), star: starSun })}</div>
+              <div>${t('card.dtePct', { days: Math.round(a.usableDtePct * 0.3), star: starDte })}</div>
+              <div>${t('card.longestShadow', { d: fmtDays(a.longestDark) })}</div>
+              <div>${t('card.maxEl', { desc: sunHeightWords(sc.summary.max_solar_elevation_deg) })}</div>
             </div>
             <div class="pt-2 border-t border-slate-800/80 text-[11px]">${verdict}</div>
           </div>`;
@@ -567,18 +575,18 @@ class Phase4Manager {
         <div class="bg-slate-950 border ${colors[idx]} rounded-xl p-4 flex flex-col justify-between space-y-4">
           ${head}
           <div class="space-y-2 text-xs border-t border-slate-800/80 pt-3">
-            <div class="flex justify-between"><span class="text-slate-400">Luz útil (≥${this.th.sunMargin}°):</span><span class="mono font-bold ${starSun ? 'text-emerald-400' : 'text-white'}">${a.usableSunPct.toFixed(1)}% (${a.sunHours}h)${starSun}</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">DTE útil (≥${this.th.dteMargin}°):</span><span class="mono font-bold ${starDte ? 'text-emerald-400' : 'text-white'}">${a.usableDtePct.toFixed(1)}% (${a.dteHours}h)${starDte}</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Elevación solar máx.:</span><span class="mono font-semibold text-amber-300">${sc.summary.max_solar_elevation_deg.toFixed(2)}°</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Sombra continua máx.:</span><span class="mono font-semibold ${a.criteria[2].ok ? 'text-slate-200' : 'text-rose-400'}">${a.longestDark} h (${(a.longestDark / 24).toFixed(1)}d)</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Máx. sin DTE:</span><span class="mono font-semibold text-slate-200">${a.longestNoDte} h</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Paneles:</span><span class="mono text-slate-300">${sc.summary.panel_mode === 'vertical' ? 'verticales' : 'horizontales'} · ${sc.summary.mean_panel_efficiency_lit_pct ?? '—'}%</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">${t('card.usableSun', { m: this.th.sunMargin })}</span><span class="mono font-bold ${starSun ? 'text-emerald-400' : 'text-white'}">${a.usableSunPct.toFixed(1)}% (${a.sunHours}h)${starSun}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">${t('card.usableDte', { m: this.th.dteMargin })}</span><span class="mono font-bold ${starDte ? 'text-emerald-400' : 'text-white'}">${a.usableDtePct.toFixed(1)}% (${a.dteHours}h)${starDte}</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">${t('card.maxElEng')}</span><span class="mono font-semibold text-amber-300">${sc.summary.max_solar_elevation_deg.toFixed(2)}°</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">${t('card.longestShadowEng')}</span><span class="mono font-semibold ${a.criteria[2].ok ? 'text-slate-200' : 'text-rose-400'}">${a.longestDark} h (${(a.longestDark / 24).toFixed(1)}d)</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">${t('card.maxNoDte')}</span><span class="mono font-semibold text-slate-200">${a.longestNoDte} h</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">${t('card.panels')}</span><span class="mono text-slate-300">${panelWord} · ${sc.summary.mean_panel_efficiency_lit_pct ?? '—'}%</span></div>
           </div>
           <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
-            <span class="mono font-bold px-2 py-0.5 rounded border ${VERDICT_STYLE[a.verdict]}">${a.verdict}</span>
-            <span class="text-slate-400">${a.criteria.map(c => (c.ok ? '✔' : '✖') + ' ' + c.label.split(' ')[0]).join(' · ')}</span>
+            <span class="mono font-bold px-2 py-0.5 rounded border ${VERDICT_STYLE[a.verdict]}">${t('verdict.' + a.verdict)}</span>
+            <span class="text-slate-400">${a.criteria.map(c => (c.ok ? '✔' : '✖') + ' ' + t('crit.short.' + c.id)).join(' · ')}</span>
           </div>
-          ${a.needsRelay ? '<div class="text-[11px] text-rose-300 font-semibold -mt-2">⚠ Requiere satélite relé (sin DTE útil)</div>' : ''}
+          ${a.needsRelay ? `<div class="text-[11px] text-rose-300 font-semibold -mt-2">${t('card.relay')}</div>` : ''}
         </div>`;
     }).join('');
   }
@@ -613,7 +621,7 @@ class Phase4Manager {
     if (mode === 'zoom') {
       minEl = -10; maxEl = 10; step = 5;
     } else {
-      const allEls = this.scenarios.flatMap(s => s.timeline.map(t => t.sun.el));
+      const allEls = this.scenarios.flatMap(s => s.timeline.map(x => x.sun.el));
       step = 15;
       minEl = Math.max(-90, Math.floor(Math.min(...allEls) / step) * step);
       maxEl = Math.min(90, Math.ceil(Math.max(...allEls) / step) * step);
@@ -643,7 +651,7 @@ class Phase4Manager {
       ctx.strokeStyle = '#1e293b';
       ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + plotH); ctx.stroke();
       ctx.fillStyle = '#64748b';
-      const lbl = `día ${d}`;
+      const lbl = t('chart.day', { d });
       const tw = ctx.measureText(lbl).width;
       ctx.fillText(lbl, Math.min(x - tw / 2, W - tw - 2), H - 6);
     }
@@ -689,7 +697,7 @@ class Phase4Manager {
 
       const item = document.createElement('span');
       item.className = 'flex items-center gap-1.5 text-slate-300';
-      item.innerHTML = `<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${strokeColors[idx]}"></span>${sc.site.name.split('(')[0].trim()} (${this.startLabel(sc)})`;
+      item.innerHTML = `<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${strokeColors[idx]}"></span>${siteName(sc.site).split('(')[0].trim()} (${this.startLabel(sc)})`;
       legendHost.appendChild(item);
     });
   }
@@ -697,25 +705,29 @@ class Phase4Manager {
   async addScenarioByParams(paramsObj) {
     if (this.busy) return;
     this.busy = true;
-    this.setStatus('Evaluando escenario…', 'info');
+    this.setStatus({ key: 'comp.evaluating', kind: 'info' });
     try {
       const query = new URLSearchParams({ ...paramsObj, days: 30, panel: this.currentPanelMode() }).toString();
       const res = await fetch(`/api/evaluate?${query}`);
       if (!res.ok) {
-        let detail = `Error ${res.status} evaluando el escenario`;
-        try { detail = (await res.json()).detail || detail; } catch (_) { /* respuesta no JSON */ }
-        throw new Error(detail);
+        const site = this.sitesCatalog.find(s => s.id === paramsObj.site_id);
+        const label = site ? siteName(site) : `${paramsObj.lat}°, ${paramsObj.lon}°`;
+        const err = new Error('http');
+        err.i18n = res.status === 503 ? { key: 'err.offline', vars: { site: label, date: paramsObj.start_date } }
+          : res.status === 400 ? { key: 'err.badCoords' }
+          : res.status === 502 ? { key: 'err.horizons' }
+          : { key: 'err.generic', vars: { code: res.status } };
+        throw err;
       }
       const report = await res.json();
       if (this.scenarios.length >= 3) this.scenarios.shift(); // reemplaza el más antiguo
       this.scenarios.push(report);
+      this.status = null;
       document.getElementById('pinnedCountBadge').textContent = `${this.scenarios.length}/3`;
       this.renderWorkspace();
     } catch (err) {
       console.warn(err);
-      this.setStatus(err.message === 'Failed to fetch'
-        ? 'No hay conexión con el servidor local (¿está corriendo api.py?).'
-        : err.message, 'error');
+      this.setStatus({ ...(err.i18n || { key: 'err.server' }), kind: 'error' });
     } finally {
       this.busy = false;
     }
@@ -734,10 +746,10 @@ class Phase4Manager {
 
     const headers = ['timestamp_utc', 'sun_az_deg', 'sun_el_deg', 'sun_horizon_deg', 'sun_margin_deg', 'sun_visible', 'solar_eff_pct',
       'earth_az_deg', 'earth_el_deg', 'earth_horizon_deg', 'earth_margin_deg', 'dte_visible', 'hours_to_sunset', 'hours_to_earthset'];
-    const rows = target.timeline.map(t => [
-      t.timestamp_utc, t.sun.az, t.sun.el, t.sun.horizon_el, (t.sun.el - t.sun.horizon_el).toFixed(3), t.sun.visible, t.sun.solar_power_efficiency_pct,
-      t.earth.az, t.earth.el, t.earth.horizon_el, (t.earth.el - t.earth.horizon_el).toFixed(3), t.earth.visible,
-      t.hours_to_sunset ?? 'BEYOND_PERIOD', t.hours_to_earthset ?? 'BEYOND_PERIOD',
+    const rows = target.timeline.map(s => [
+      s.timestamp_utc, s.sun.az, s.sun.el, s.sun.horizon_el, (s.sun.el - s.sun.horizon_el).toFixed(3), s.sun.visible, s.sun.solar_power_efficiency_pct,
+      s.earth.az, s.earth.el, s.earth.horizon_el, (s.earth.el - s.earth.horizon_el).toFixed(3), s.earth.visible,
+      s.hours_to_sunset ?? 'BEYOND_PERIOD', s.hours_to_earthset ?? 'BEYOND_PERIOD',
     ].join(','));
     const csv = [headers.join(','), ...rows].join('\n');
     this.triggerDownload(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `lunar_ephemeris_${target.site.id}_${date}.csv`);
@@ -763,6 +775,7 @@ class Phase4Manager {
 
     document.getElementById('btnClearScenarios')?.addEventListener('click', () => {
       this.scenarios = [];
+      this.status = null;
       document.getElementById('pinnedCountBadge').textContent = '0/3';
       this.renderWorkspace();
     });
